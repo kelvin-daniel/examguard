@@ -1,0 +1,121 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model User {
+  id        String    @id @default(cuid())
+  email     String    @unique
+  name      String
+  password  String
+  role      String    @default("teacher")
+  createdAt DateTime  @default(now())
+  exams     Exam[]
+  sessions  Session[]
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+model Exam {
+  id               String     @id @default(cuid())
+  code             String     @unique
+  title            String
+  description      String?
+  durationMinutes  Int        @default(60)
+  shuffleQuestions Boolean    @default(true)
+  shuffleOptions   Boolean    @default(true)
+  showResults      Boolean    @default(false)
+  passingScore     Int        @default(50)
+  startAt          DateTime?
+  endAt            DateTime?
+  status           String     @default("draft")
+
+  // Enforcement settings (exam.net-style)
+  requireFullscreen       Boolean @default(true)
+  blockCopyPaste          Boolean @default(true)
+  blockRightClick         Boolean @default(true)
+  blockKeyboardShortcuts  Boolean @default(true)
+  blockTabSwitch          Boolean @default(true)
+  pauseOnViolation        Boolean @default(true)
+  autoSubmitOnViolations  Int     @default(0) // 0 = off, otherwise count
+  allowCalculator         Boolean @default(false)
+  allowScratchpad         Boolean @default(false)
+
+  ownerId          String
+  owner            User       @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  questions        Question[]
+  attempts         Attempt[]
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+}
+
+model Question {
+  id      String   @id @default(cuid())
+  examId  String
+  exam    Exam     @relation(fields: [examId], references: [id], onDelete: Cascade)
+  order   Int
+  type    String
+  prompt  String
+  points  Int      @default(1)
+  options String?
+  correct String?
+  answers Answer[]
+}
+
+model Attempt {
+  id            String      @id @default(cuid())
+  examId        String
+  exam          Exam        @relation(fields: [examId], references: [id], onDelete: Cascade)
+  studentName   String
+  studentEmail  String?
+  startedAt     DateTime    @default(now())
+  submittedAt   DateTime?
+  score         Float?
+  maxScore      Float?
+  questionOrder String
+  status        String      @default("in_progress") // in_progress | paused | submitted | terminated
+  pausedReason  String?
+  ipAddress     String?
+  userAgent     String?
+  answers       Answer[]
+  violations    Violation[]
+}
+
+model Answer {
+  id           String   @id @default(cuid())
+  attemptId    String
+  attempt      Attempt  @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  questionId   String
+  question     Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  response     String
+  isCorrect    Boolean?
+  pointsEarned Float?
+  updatedAt    DateTime @updatedAt
+
+  @@unique([attemptId, questionId])
+}
+
+model Violation {
+  id         String   @id @default(cuid())
+  attemptId  String
+  attempt    Attempt  @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  type       String
+  severity   String   @default("medium")
+  meta       String?
+  evidence   String?
+  pending    Boolean  @default(false) // awaits teacher review
+  resolution String? // null | "allowed" | "terminated"
+  resolvedAt DateTime?
+  createdAt  DateTime @default(now())
+}

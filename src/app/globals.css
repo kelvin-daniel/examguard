@@ -1,26 +1,247 @@
 @import "tailwindcss";
 
+/* Class-based dark mode for Tailwind v4 */
+@variant dark (&:where(.dark, .dark *));
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Warm pastel palette */
+  --bg: #fdf8f3;        /* warm cream */
+  --bg-soft: #fbeee2;   /* peach mist */
+  --bg-muted: #f7e6d5;  /* deeper cream */
+  --surface: #ffffff;
+  --surface-elev: #ffffff;
+  --fg: #2a1f1a;        /* warm dark brown */
+  --fg-muted: #6b574a;
+  --fg-subtle: #9c8473;
+
+  --border: #f0dccb;
+  --border-strong: #e6c8ad;
+
+  --primary: #ff7a59;       /* warm coral */
+  --primary-soft: #ffb89a;
+  --primary-fg: #ffffff;
+
+  --accent-lavender: #b8a4e0;
+  --accent-mint: #7dd3b8;
+  --accent-peach: #ffc4a3;
+  --accent-butter: #ffd97a;
+  --accent-rose: #ffa8b8;
+
+  --shadow-glass:
+    0 1px 0 0 rgba(255, 255, 255, 0.6) inset,
+    0 -1px 0 0 rgba(0, 0, 0, 0.04) inset,
+    0 4px 12px -2px rgba(122, 78, 47, 0.08),
+    0 16px 32px -8px rgba(122, 78, 47, 0.12);
+
+  --shadow-card:
+    0 1px 0 0 rgba(255, 255, 255, 0.7) inset,
+    0 1px 2px rgba(122, 78, 47, 0.04),
+    0 8px 24px -8px rgba(122, 78, 47, 0.12);
+
+  --shadow-3d:
+    0 1px 0 0 rgba(255, 255, 255, 0.6) inset,
+    0 2px 4px rgba(122, 78, 47, 0.04),
+    0 8px 16px -4px rgba(122, 78, 47, 0.08),
+    0 24px 48px -12px rgba(122, 78, 47, 0.18);
+}
+
+.dark {
+  --bg: #1a1410;        /* deep warm black */
+  --bg-soft: #261d18;
+  --bg-muted: #2e2520;
+  --surface: #221a15;
+  --surface-elev: #2a201a;
+  --fg: #fdf4e8;
+  --fg-muted: #c4b3a3;
+  --fg-subtle: #8a7868;
+
+  --border: #3a2d24;
+  --border-strong: #4d3c30;
+
+  --primary: #ff8b6e;
+  --primary-soft: #d4734f;
+  --primary-fg: #1a1410;
+
+  --shadow-glass:
+    0 1px 0 0 rgba(255, 255, 255, 0.04) inset,
+    0 -1px 0 0 rgba(0, 0, 0, 0.4) inset,
+    0 4px 12px rgba(0, 0, 0, 0.4),
+    0 16px 32px rgba(0, 0, 0, 0.4);
+
+  --shadow-card:
+    0 1px 0 0 rgba(255, 255, 255, 0.04) inset,
+    0 1px 2px rgba(0, 0, 0, 0.3),
+    0 8px 24px -8px rgba(0, 0, 0, 0.5);
+
+  --shadow-3d:
+    0 1px 0 0 rgba(255, 255, 255, 0.04) inset,
+    0 2px 4px rgba(0, 0, 0, 0.3),
+    0 8px 16px -4px rgba(0, 0, 0, 0.4),
+    0 24px 48px -12px rgba(0, 0, 0, 0.6);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-background: var(--bg);
+  --color-foreground: var(--fg);
+  --color-surface: var(--surface);
+  --color-border-soft: var(--border);
+  --color-primary: var(--primary);
+  --font-sans: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html,
+body {
+  background: var(--bg);
+  color: var(--fg);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overscroll-behavior-y: none;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans);
 }
+
+*:focus-visible {
+  outline: none;
+}
+
+.exam-locked {
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* ---- Premium effects ---- */
+
+/* Aurora gradient that flows behind the whole landing page */
+.aurora {
+  background:
+    radial-gradient(ellipse 60% 50% at 20% 10%, rgba(255, 184, 154, 0.55), transparent 60%),
+    radial-gradient(ellipse 50% 40% at 80% 20%, rgba(184, 164, 224, 0.45), transparent 60%),
+    radial-gradient(ellipse 70% 50% at 50% 50%, rgba(255, 217, 122, 0.4), transparent 60%),
+    radial-gradient(ellipse 60% 50% at 20% 90%, rgba(125, 211, 184, 0.35), transparent 60%),
+    radial-gradient(ellipse 50% 40% at 90% 80%, rgba(255, 168, 184, 0.4), transparent 60%);
+}
+.dark .aurora {
+  background:
+    radial-gradient(ellipse 60% 50% at 20% 10%, rgba(212, 115, 79, 0.25), transparent 60%),
+    radial-gradient(ellipse 50% 40% at 80% 20%, rgba(124, 102, 168, 0.25), transparent 60%),
+    radial-gradient(ellipse 70% 50% at 50% 50%, rgba(184, 142, 60, 0.18), transparent 60%),
+    radial-gradient(ellipse 60% 50% at 20% 90%, rgba(80, 140, 120, 0.18), transparent 60%),
+    radial-gradient(ellipse 50% 40% at 90% 80%, rgba(168, 100, 110, 0.2), transparent 60%);
+}
+
+/* Glass card */
+.glass {
+  background: rgba(255, 255, 255, 0.62);
+  backdrop-filter: blur(18px) saturate(140%);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  box-shadow: var(--shadow-glass);
+}
+.dark .glass {
+  background: rgba(40, 30, 24, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.glass-soft {
+  background: rgba(255, 255, 255, 0.45);
+  backdrop-filter: blur(12px) saturate(140%);
+  -webkit-backdrop-filter: blur(12px) saturate(140%);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+}
+.dark .glass-soft {
+  background: rgba(40, 30, 24, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+/* 3D button shadow */
+.btn-3d {
+  box-shadow:
+    0 1px 0 0 rgba(255, 255, 255, 0.4) inset,
+    0 -2px 0 0 rgba(0, 0, 0, 0.12) inset,
+    0 1px 2px rgba(122, 78, 47, 0.1),
+    0 4px 12px -2px rgba(255, 122, 89, 0.4);
+  transition: all 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.btn-3d:hover {
+  transform: translateY(-1px);
+  box-shadow:
+    0 1px 0 0 rgba(255, 255, 255, 0.5) inset,
+    0 -2px 0 0 rgba(0, 0, 0, 0.12) inset,
+    0 2px 4px rgba(122, 78, 47, 0.1),
+    0 8px 20px -2px rgba(255, 122, 89, 0.5);
+}
+.btn-3d:active {
+  transform: translateY(0);
+  box-shadow:
+    0 1px 0 0 rgba(255, 255, 255, 0.3) inset,
+    0 1px 2px rgba(122, 78, 47, 0.1);
+}
+
+/* Card with depth */
+.card-3d {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 1.25rem;
+  box-shadow: var(--shadow-3d);
+}
+
+/* Float animation for hero accents */
+@keyframes float-slow {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-12px) rotate(2deg); }
+}
+@keyframes float-med {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-8px) rotate(-3deg); }
+}
+@keyframes float-fast {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-6px) rotate(1.5deg); }
+}
+.float-slow { animation: float-slow 7s ease-in-out infinite; }
+.float-med { animation: float-med 5s ease-in-out infinite; }
+.float-fast { animation: float-fast 4s ease-in-out infinite; }
+
+/* Smooth section flow — instead of hard borders, use a vertical gradient */
+.section-flow {
+  background: linear-gradient(180deg, transparent 0%, var(--bg-soft) 50%, transparent 100%);
+}
+
+@keyframes fadeSlideUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-in { animation: fadeSlideUp 0.3s ease-out; }
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.55; transform: scale(1.25); }
+}
+.live-dot { animation: pulse-dot 2s ease-in-out infinite; }
+
+/* Subtle grain for premium feel */
+.grain::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.4;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.06 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+}
+
+/* Theme transition */
+html { transition: background-color 0.25s ease, color 0.25s ease; }
+.theme-transition * { transition: background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease; }
