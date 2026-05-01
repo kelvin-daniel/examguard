@@ -93,7 +93,7 @@
   --color-surface: var(--surface);
   --color-border-soft: var(--border);
   --color-primary: var(--primary);
-  --font-sans: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
+  --font-sans: var(--font-poppins), system-ui, -apple-system, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
 
   /* Larger base type — minimum 16px everywhere */
@@ -131,7 +131,13 @@ body {
 
 body {
   font-family: var(--font-sans);
-  letter-spacing: -0.005em;
+  letter-spacing: -0.01em;
+}
+
+/* Poppins runs slightly heavy at heading sizes — pull tracking in tighter */
+h1, h2, h3, h4, h5, h6,
+.heading-tight {
+  letter-spacing: -0.025em;
 }
 
 *:focus-visible {

@@ -217,7 +217,7 @@ export function ExamRunner({
   return (
     <div
       ref={containerRef}
-      className="relative min-h-screen exam-locked flex flex-col"
+      className="relative h-[100dvh] exam-locked flex flex-col overflow-hidden"
     >
       <div
         className="aurora pointer-events-none fixed inset-0 -z-10"
@@ -228,14 +228,14 @@ export function ExamRunner({
         <PausedOverlay reason={pausedReason} examTitle={examTitle} />
       )}
 
-      {/* Top bar */}
-      <header className="sticky top-0 z-20 glass-soft">
+      {/* Top bar — fixed-height chrome, doesn't grow */}
+      <header className="flex-shrink-0 z-20 glass-soft">
         <div className="max-w-3xl mx-auto px-4 h-14 flex items-center justify-between gap-3">
           <div className="min-w-0 flex-1">
-            <div className="text-[11px] uppercase tracking-wider text-[var(--fg-subtle)] truncate">
+            <div className="text-xs uppercase tracking-wider text-[var(--fg-subtle)] truncate">
               {examTitle}
             </div>
-            <div className="text-xs text-[var(--fg-muted)] truncate">
+            <div className="text-sm text-[var(--fg-muted)] truncate">
               {studentName}
             </div>
           </div>
@@ -254,60 +254,60 @@ export function ExamRunner({
         {/* Progress */}
         <div className="h-1 bg-[var(--bg-muted)]">
           <div
-            className="h-full bg-gradient-to-r from-[#3b82f6] via-[#fca5a5] to-[#a78bfa] transition-all"
+            className="h-full bg-gradient-to-r from-[#3b82f6] to-[#a78bfa] transition-all"
             style={{ width: `${((idx + 1) / total) * 100}%` }}
           />
         </div>
       </header>
 
-      {/* Status banners */}
-      <StatusBanners
-        online={online}
-        isFullscreen={isFullscreen}
-        requireFullscreen={settings.requireFullscreen}
-        onReFullscreen={enterFullscreen}
-        violationCount={violations.length}
-      />
+      {/* Question — only this region scrolls. min-h-0 lets flexbox shrink it. */}
+      <main className="flex-1 min-h-0 overflow-y-auto">
+        <StatusBanners
+          online={online}
+          isFullscreen={isFullscreen}
+          requireFullscreen={settings.requireFullscreen}
+          onReFullscreen={enterFullscreen}
+          violationCount={violations.length}
+        />
 
-      {/* Question */}
-      <main className="flex-1 max-w-3xl w-full mx-auto px-4 py-6 sm:py-10">
-        <div className="text-sm text-[var(--fg-muted)] mb-4">
-          Question {idx + 1} of {total}
-          <span className="mx-2">·</span>
-          {current.points} {current.points === 1 ? "point" : "points"}
-        </div>
-        {current.imageUrl && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={current.imageUrl}
-            alt=""
-            className="mb-4 w-full max-h-96 object-contain rounded-2xl border border-[var(--border)] bg-[var(--bg-muted)]"
-          />
-        )}
-        <h2 className="text-xl sm:text-2xl font-medium text-[var(--fg)] whitespace-pre-wrap leading-relaxed">
-          {current.prompt || (
-            <em className="text-[var(--fg-subtle)]">(No prompt)</em>
+        <div className="max-w-3xl w-full mx-auto px-4 py-5 sm:py-7">
+          <div className="text-sm text-[var(--fg-muted)] mb-3">
+            Question {idx + 1} of {total}
+            <span className="mx-2">·</span>
+            {current.points} {current.points === 1 ? "point" : "points"}
+          </div>
+          {current.imageUrl && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={current.imageUrl}
+              alt=""
+              className="mb-4 w-full max-h-72 object-contain rounded-2xl border border-[var(--border)] bg-[var(--bg-muted)]"
+            />
           )}
-          {current.required && (
-            <span className="text-[#dc2626] ml-1">*</span>
+          <h2 className="text-xl sm:text-2xl font-medium text-[var(--fg)] whitespace-pre-wrap leading-snug">
+            {current.prompt || (
+              <em className="text-[var(--fg-subtle)]">(No prompt)</em>
+            )}
+            {current.required && (
+              <span className="text-[#dc2626] ml-1">*</span>
+            )}
+          </h2>
+          {current.description && (
+            <p className="mt-2 text-sm text-[var(--fg-muted)] whitespace-pre-wrap">
+              {current.description}
+            </p>
           )}
-        </h2>
-        {current.description && (
-          <p className="mt-2 text-sm text-[var(--fg-muted)] whitespace-pre-wrap">
-            {current.description}
-          </p>
-        )}
 
-        <div className="mt-6">
-          <QuestionInput
-            question={current}
-            value={answers[current.id] ?? ""}
-            onChange={(v) => saveAnswer(current.id, v)}
-          />
-        </div>
+          <div className="mt-5">
+            <QuestionInput
+              question={current}
+              value={answers[current.id] ?? ""}
+              onChange={(v) => saveAnswer(current.id, v)}
+            />
+          </div>
 
-        {/* Navigation */}
-        <div className="mt-8 flex items-center justify-between gap-2">
+          {/* Navigation */}
+          <div className="mt-6 flex items-center justify-between gap-2">
           <Button
             variant="outline"
             onClick={() => setIdx((i) => Math.max(0, i - 1))}
@@ -334,13 +334,14 @@ export function ExamRunner({
               {submitting ? "Submitting…" : "Submit exam"}
             </Button>
           )}
+          </div>
         </div>
       </main>
 
       {/* Question palette */}
-      <nav className="sticky bottom-0 z-10 glass-soft px-4 py-3">
+      <nav className="flex-shrink-0 z-10 glass-soft px-4 py-2.5">
         <div className="max-w-3xl mx-auto">
-          <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center justify-between mb-1.5">
             <span className="text-xs font-medium text-[var(--fg-muted)]">
               {answered.size} / {total} answered
             </span>
@@ -402,9 +403,9 @@ function StartScreen({
   );
 
   return (
-    <div className="relative min-h-screen overflow-hidden">
+    <div className="relative h-[100dvh] overflow-y-auto">
       <div className="aurora pointer-events-none fixed inset-0 -z-10" aria-hidden />
-      <div className="min-h-screen flex items-center justify-center p-4">
+      <div className="min-h-full flex items-center justify-center p-4 py-8">
         <div className="max-w-md w-full text-center">
           <div className="h-16 w-16 mx-auto rounded-2xl bg-gradient-to-br from-[#3b82f6] to-[#2563eb] flex items-center justify-center mb-6 shadow-[0_8px_24px_-4px_rgba(37,99,235,0.35)]">
             <ShieldCheck className="h-8 w-8 text-white" />

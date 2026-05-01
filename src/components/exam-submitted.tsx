@@ -1,7 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CheckCircle2, AlertOctagon, PartyPopper } from "lucide-react";
+import Link from "next/link";
+import {
+  AlertOctagon,
+  CheckCircle2,
+  Home,
+  PartyPopper,
+} from "lucide-react";
+import { Button } from "./ui/button";
 import { Confetti } from "./confetti";
 
 export function ExamSubmitted({
@@ -27,11 +34,19 @@ export function ExamSubmitted({
     return () => clearTimeout(t);
   }, [terminated]);
 
+  // Make sure we drop the fullscreen lock when this view shows so the
+  // student can actually use the browser again.
+  useEffect(() => {
+    if (document.fullscreenElement) {
+      document.exitFullscreen().catch(() => {});
+    }
+  }, []);
+
   if (terminated) {
     return (
-      <div className="relative min-h-screen overflow-hidden">
+      <div className="relative h-[100dvh] overflow-y-auto">
         <div className="aurora pointer-events-none fixed inset-0 -z-10" aria-hidden />
-        <div className="min-h-screen flex items-center justify-center p-6">
+        <div className="min-h-full flex items-center justify-center p-6">
           <div className="max-w-md w-full text-center glass rounded-3xl p-8">
             <div className="h-16 w-16 mx-auto rounded-2xl bg-gradient-to-br from-[#ef4444] to-[#dc2626] flex items-center justify-center mb-6 shadow-[0_8px_24px_-4px_rgba(220,38,38,0.35)]">
               <AlertOctagon className="h-8 w-8 text-white" />
@@ -39,13 +54,24 @@ export function ExamSubmitted({
             <h1 className="text-3xl font-semibold tracking-tight text-[var(--fg)]">
               Exam ended
             </h1>
-            <p className="mt-2 text-[var(--fg-muted)]">
+            <p className="mt-3 text-[var(--fg-muted)]">
               {name.split(" ")[0]}, your <strong>{title}</strong> attempt was
               ended due to a violation of exam policy.
             </p>
-            <p className="mt-6 text-xs text-[var(--fg-subtle)]">
-              Your teacher has the details. You can close this window.
+            <p className="mt-4 text-sm text-[var(--fg-subtle)]">
+              Your teacher has the details.
             </p>
+            <Button
+              asChild
+              variant="primary"
+              size="lg"
+              className="mt-6 w-full"
+            >
+              <Link href="/">
+                <Home className="h-4 w-4" />
+                Back to home
+              </Link>
+            </Button>
           </div>
         </div>
       </div>
@@ -58,11 +84,11 @@ export function ExamSubmitted({
       : null;
 
   return (
-    <div className="relative min-h-screen overflow-hidden">
+    <div className="relative h-[100dvh] overflow-y-auto">
       <div className="aurora pointer-events-none fixed inset-0 -z-10" aria-hidden />
       <Confetti active={showConfetti} />
 
-      <div className="min-h-screen flex items-center justify-center p-6">
+      <div className="min-h-full flex items-center justify-center p-6 py-10">
         <div className="max-w-md w-full text-center">
           <div className="relative mx-auto h-20 w-20 mb-6">
             <div className="absolute inset-0 rounded-full bg-gradient-to-br from-[#34d399] to-[#10b981] blur-xl opacity-60" />
@@ -86,7 +112,7 @@ export function ExamSubmitted({
                 Your score
               </div>
               <div className="mt-2 flex items-baseline justify-center gap-2">
-                <span className="text-6xl font-semibold tracking-tight bg-gradient-to-br from-[#2563eb] to-[#fca5a5] bg-clip-text text-transparent">
+                <span className="text-6xl font-semibold tracking-tight bg-gradient-to-br from-[#2563eb] to-[#0ea5e9] bg-clip-text text-transparent">
                   {score}
                 </span>
                 <span className="text-2xl text-[var(--fg-subtle)]">
@@ -97,7 +123,7 @@ export function ExamSubmitted({
                 <div className="mt-3">
                   <div className="h-2 rounded-full bg-[var(--bg-muted)] overflow-hidden">
                     <div
-                      className="h-full bg-gradient-to-r from-[#3b82f6] via-[#fca5a5] to-[#a78bfa] transition-all duration-1000"
+                      className="h-full bg-gradient-to-r from-[#3b82f6] via-[#0ea5e9] to-[#a78bfa] transition-all duration-1000"
                       style={{ width: `${pct}%` }}
                     />
                   </div>
@@ -117,7 +143,19 @@ export function ExamSubmitted({
             </div>
           )}
 
-          <p className="mt-8 text-xs text-[var(--fg-subtle)]">
+          <Button
+            asChild
+            variant="primary"
+            size="lg"
+            className="mt-8 w-full"
+          >
+            <Link href="/">
+              <Home className="h-4 w-4" />
+              Back to home
+            </Link>
+          </Button>
+
+          <p className="mt-4 text-sm text-[var(--fg-subtle)]">
             You can safely close this window.
           </p>
         </div>
