@@ -1,6 +1,6 @@
 import "dotenv/config";
 import { defineConfig } from "prisma/config";
-import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
+import { PrismaLibSql } from "@prisma/adapter-libsql";
 
 export default defineConfig({
   schema: "prisma/schema.prisma",
@@ -11,7 +11,8 @@ export default defineConfig({
     path: "prisma/migrations",
   },
   adapter: async () =>
-    new PrismaBetterSqlite3({
+    new PrismaLibSql({
       url: process.env.DATABASE_URL ?? "file:./dev.db",
+      authToken: process.env.TURSO_AUTH_TOKEN,
     }),
 });

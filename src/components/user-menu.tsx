@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { LogOut, ChevronDown, ShieldAlert } from "lucide-react";
+import { LogOut, ChevronDown, ShieldAlert, KeyRound } from "lucide-react";
 
 export function UserMenu({
   name,
@@ -70,6 +70,14 @@ export function UserMenu({
                 Admin dashboard
               </Link>
             )}
+            <Link
+              href="/account"
+              onClick={() => setOpen(false)}
+              className="w-full text-left px-3 py-2.5 text-sm text-[var(--fg)] hover:bg-white/40 dark:hover:bg-white/5 flex items-center gap-2"
+            >
+              <KeyRound className="h-4 w-4 text-[var(--fg-muted)]" />
+              Account settings
+            </Link>
             <button
               onClick={logout}
               className="w-full text-left px-3 py-2.5 text-sm text-[var(--fg)] hover:bg-white/40 dark:hover:bg-white/5 flex items-center gap-2 border-t border-[var(--border)]"

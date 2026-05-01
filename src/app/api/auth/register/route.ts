@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { hashPassword, isAdminEmail } from "@/lib/auth";
+import { sendPendingApprovalToAdmins } from "@/lib/email";
 
 const schema = z.object({
   name: z.string().min(1).max(120),
@@ -42,6 +43,18 @@ export async function POST(req: Request) {
       approvedBy: bootstrap ? "system" : null,
     },
   });
+
+  // Notify admins (fire-and-forget — don't block the response on email)
+  if (!bootstrap) {
+    const admins = await prisma.user.findMany({
+      where: { role: "admin", status: "active" },
+      select: { email: true },
+    });
+    void sendPendingApprovalToAdmins(
+      admins.map((a) => a.email),
+      { name, email }
+    );
+  }
 
   return NextResponse.json({
     ok: true,

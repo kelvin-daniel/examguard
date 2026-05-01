@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
+import { sendApprovalGranted, sendApprovalRejected } from "@/lib/email";
 
 const patchSchema = z.object({
   action: z.enum(["approve", "reject", "promote", "demote"]),
@@ -63,6 +64,13 @@ export async function PATCH(
     data,
     select: { id: true, status: true, role: true },
   });
+
+  // Fire-and-forget email notifications (don't block the admin's response)
+  if (parsed.data.action === "approve") {
+    void sendApprovalGranted({ name: target.name, email: target.email });
+  } else if (parsed.data.action === "reject") {
+    void sendApprovalRejected({ name: target.name, email: target.email });
+  }
 
   return NextResponse.json({ user: updated });
 }
