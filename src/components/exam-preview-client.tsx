@@ -20,6 +20,7 @@ type PreviewQuestion = {
   required: boolean;
   options: string[] | null;
   config: Record<string, unknown> | null;
+  imageUrl: string | null;
 };
 
 export function ExamPreviewClient({
@@ -83,6 +84,14 @@ export function ExamPreviewClient({
                   Question {qIndex} · {q.points}{" "}
                   {q.points === 1 ? "point" : "points"}
                 </div>
+                {q.imageUrl && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={q.imageUrl}
+                    alt=""
+                    className="mb-3 w-full max-h-72 object-contain rounded-xl border border-[var(--border)] bg-[var(--bg-muted)]"
+                  />
+                )}
                 <h3 className="text-lg font-medium text-[var(--fg)]">
                   {q.prompt}
                   {q.required && (

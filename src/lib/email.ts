@@ -134,6 +134,29 @@ export async function sendApprovalGranted(user: {
   });
 }
 
+export async function sendPasswordResetLink(
+  user: { name: string; email: string },
+  token: string
+) {
+  const url = `${PUBLIC_URL}/reset?token=${encodeURIComponent(token)}`;
+  return send({
+    to: user.email,
+    subject: "Reset your ExamGuard password",
+    text: `Hi ${user.name.split(" ")[0]},\n\nClick the link below to reset your ExamGuard password. The link expires in 1 hour.\n\n${url}\n\nIf you didn't request this, you can ignore this email.\n\n— ExamGuard`,
+    html: shell(
+      "Reset your ExamGuard password",
+      `<p>Hi ${escape(user.name.split(" ")[0])},</p>
+      <p>Click below to set a new password. This link expires in 1 hour.</p>
+      <p style="margin:24px 0;">
+        <a href="${url}" style="display:inline-block;background:linear-gradient(135deg,#ff9a7a,#ff7a59);color:#fff;text-decoration:none;font-weight:600;padding:12px 24px;border-radius:12px;">
+          Reset password
+        </a>
+      </p>
+      <p style="color:#6b574a;font-size:13px;">If you didn't request this, you can ignore this email — your current password still works.</p>`
+    ),
+  });
+}
+
 export async function sendApprovalRejected(user: {
   name: string;
   email: string;

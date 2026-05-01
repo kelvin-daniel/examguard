@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
+import { deleteByUrl } from "@/lib/storage";
 
 const schema = z.object({
   action: z.enum(["allow", "terminate"]),
@@ -31,6 +32,10 @@ export async function POST(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   if (parsed.data.action === "allow") {
+    // Best-effort cleanup of R2 object if evidence was stored remotely.
+    // Don't block on it: we always proceed to clear the DB row regardless.
+    void deleteByUrl(violation.evidence);
+
     // Discard evidence to save storage; mark resolved; resume attempt
     await prisma.$transaction([
       prisma.violation.update({

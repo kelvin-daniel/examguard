@@ -76,6 +76,7 @@ export default async function ExamAttemptPage({
         config: q.config
           ? (JSON.parse(q.config) as Record<string, unknown>)
           : null,
+        imageUrl: q.imageUrl,
       };
     });
 

@@ -6,6 +6,7 @@ import { requireUser } from "@/lib/auth";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Clock, AlertTriangle } from "lucide-react";
 import { formatDateTime } from "@/lib/utils";
+import { AnswerGrader } from "@/components/answer-grader";
 
 export default async function AttemptDetailPage({
   params,
@@ -151,11 +152,13 @@ export default async function AttemptDetailPage({
                     <span className="text-[var(--fg-subtle)] mr-1">Q{i + 1}.</span>
                     {q.prompt}
                   </div>
-                  {a.isCorrect === true && (
-                    <Badge variant="success">+{a.pointsEarned}</Badge>
-                  )}
-                  {a.isCorrect === false && <Badge variant="danger">0</Badge>}
-                  {a.isCorrect === null && <Badge variant="default">Manual</Badge>}
+                  <AnswerGrader
+                    answerId={a.id}
+                    questionType={q.type}
+                    questionPoints={q.points}
+                    initialPointsEarned={a.pointsEarned}
+                    initialIsCorrect={a.isCorrect}
+                  />
                 </div>
                 <div className="text-sm text-[var(--fg-muted)]">
                   {q.type === "mcq" || q.type === "truefalse" ? (

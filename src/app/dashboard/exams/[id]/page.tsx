@@ -33,6 +33,7 @@ export default async function ExamEditPage({
     options: q.options ? (JSON.parse(q.options) as string[]) : null,
     correct: q.correct ? JSON.parse(q.correct) : null,
     config: q.config ? (JSON.parse(q.config) as Record<string, unknown>) : null,
+    imageUrl: q.imageUrl,
     order: q.order,
   }));
 

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { uploadDataUrl } from "@/lib/storage";
 
 const schema = z.object({
   type: z.string().min(1).max(64),
@@ -34,13 +35,18 @@ export async function POST(
   const isHigh = parsed.data.severity === "high";
   const shouldPause = isHigh && attempt.exam.pauseOnViolation;
 
+  // Upload evidence to R2 if configured; falls back to base64 in DB otherwise
+  const evidenceUrl = parsed.data.evidence
+    ? await uploadDataUrl(parsed.data.evidence, "evidence")
+    : null;
+
   const violation = await prisma.violation.create({
     data: {
       attemptId: id,
       type: parsed.data.type,
       severity: parsed.data.severity,
       meta: parsed.data.meta ? JSON.stringify(parsed.data.meta) : null,
-      evidence: parsed.data.evidence ?? null,
+      evidence: evidenceUrl,
       pending: shouldPause,
     },
   });

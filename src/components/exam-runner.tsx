@@ -28,6 +28,7 @@ type RunnerQuestion = {
   options: string[] | null;
   optionMap: number[] | null;
   config: Record<string, unknown> | null;
+  imageUrl: string | null;
 };
 
 type RunnerSettings = EnforcementSettings & {
@@ -275,6 +276,14 @@ export function ExamRunner({
           <span className="mx-2">·</span>
           {current.points} {current.points === 1 ? "point" : "points"}
         </div>
+        {current.imageUrl && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={current.imageUrl}
+            alt=""
+            className="mb-4 w-full max-h-96 object-contain rounded-2xl border border-[var(--border)] bg-[var(--bg-muted)]"
+          />
+        )}
         <h2 className="text-xl sm:text-2xl font-medium text-[var(--fg)] whitespace-pre-wrap leading-relaxed">
           {current.prompt || (
             <em className="text-[var(--fg-subtle)]">(No prompt)</em>

@@ -3,7 +3,8 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, AlertTriangle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { ArrowLeft, AlertTriangle, Download } from "lucide-react";
 import { formatDateTime } from "@/lib/utils";
 
 export default async function ResultsPage({
@@ -44,11 +45,20 @@ export default async function ResultsPage({
       >
         <ArrowLeft className="h-4 w-4" /> Back to exam
       </Link>
-      <div className="mb-8">
-        <h1 className="text-3xl font-semibold tracking-tight text-[var(--fg)]">
-          Results
-        </h1>
-        <p className="text-[var(--fg-muted)] mt-1">{exam.title}</p>
+      <div className="mb-8 flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <h1 className="text-3xl font-semibold tracking-tight text-[var(--fg)]">
+            Results
+          </h1>
+          <p className="text-[var(--fg-muted)] mt-1">{exam.title}</p>
+        </div>
+        {exam.attempts.length > 0 && (
+          <Button asChild variant="outline">
+            <a href={`/api/exams/${id}/export`} download>
+              <Download className="h-4 w-4" /> Download CSV
+            </a>
+          </Button>
+        )}
       </div>
 
       <div className="grid grid-cols-3 gap-3 mb-8">

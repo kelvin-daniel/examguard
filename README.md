@@ -64,7 +64,33 @@ DATABASE_URL="<turso-url>" TURSO_AUTH_TOKEN="<token>" \
   npx prisma migrate deploy
 ```
 
-### 2. Email — Resend (free: 3,000/mo, 100/day)
+### 2. Object storage — Cloudflare R2 (free: 10 GB, no egress fees)
+
+Optional but **strongly recommended** once you have more than a handful of
+classes. Without R2, screenshot evidence and question images get stored as
+base64 in the SQLite DB — fine for trying things out, but it'll fill the
+Turso free tier within a few weeks of real use.
+
+1. Sign up at [cloudflare.com](https://cloudflare.com) and enable R2.
+2. Create a bucket (e.g. `examguard-uploads`).
+3. In the bucket settings, enable a public `r2.dev` URL OR attach a custom
+   domain.
+4. Create an API token (R2 → Manage R2 API Tokens) with `Object Read & Write`
+   on that bucket.
+5. Set these env vars:
+
+```
+R2_ENDPOINT="https://<account-id>.r2.cloudflarestorage.com"
+R2_ACCESS_KEY_ID="<from token>"
+R2_SECRET_ACCESS_KEY="<from token>"
+R2_BUCKET="examguard-uploads"
+R2_PUBLIC_URL="https://pub-xxxx.r2.dev"   # or your custom domain
+```
+
+That's it — the storage layer auto-detects R2 and starts uploading. Existing
+base64 evidence stays in the DB, new evidence goes to R2.
+
+### 3. Email — Resend (free: 3,000/mo, 100/day)
 
 1. Sign up at [resend.com](https://resend.com).
 2. Generate an API key.
@@ -72,7 +98,7 @@ DATABASE_URL="<turso-url>" TURSO_AUTH_TOKEN="<token>" \
    setup). Once you verify your school's domain, switch `EMAIL_FROM` to a
    real address.
 
-### 3. Hosting — Vercel (free Hobby tier)
+### 4. Hosting — Vercel (free Hobby tier)
 
 Push to GitHub, then:
 
@@ -115,15 +141,26 @@ Then `vercel --prod` to deploy. Vercel rebuilds on every `git push` from then on
 | `RESEND_API_KEY` | optional | If unset, emails just log to stdout |
 | `EMAIL_FROM` | optional | Defaults to `ExamGuard <onboarding@resend.dev>` |
 | `NEXT_PUBLIC_APP_URL` | prod only | Used in email links |
+| `R2_ENDPOINT` | optional | Cloudflare R2 endpoint (`https://<acct>.r2.cloudflarestorage.com`) |
+| `R2_ACCESS_KEY_ID` | optional | R2 API token access key |
+| `R2_SECRET_ACCESS_KEY` | optional | R2 API token secret |
+| `R2_BUCKET` | optional | Bucket name |
+| `R2_PUBLIC_URL` | optional | Public read URL for the bucket |
+
+> If any R2 var is missing, screenshot evidence and question images fall back
+> to base64 stored in the database — works fine, just doesn't scale past a
+> few dozen exams worth of evidence.
 
 ## Roadmap
 
-- [ ] Move screenshot evidence to Cloudflare R2 (free 10 GB) instead of base64 in DB
-- [ ] Image attachments on questions
-- [ ] Conditional section branching
-- [ ] CSV export for results
-- [ ] Manual grading UI for short-answer / essay questions
-- [ ] Email password-reset flow
+- [x] Move screenshot evidence to Cloudflare R2 instead of base64 in DB
+- [x] Image attachments on questions
+- [x] CSV export for results
+- [x] Manual grading UI for short-answer / essay questions
+- [x] Email password-reset flow
+- [ ] Conditional section branching ("if Q3 = Yes go to section 3")
+- [ ] Multiple-choice grids (matrix of radios / checkboxes)
+- [ ] Multi-tenant per-school subdomains
 
 ## License
 

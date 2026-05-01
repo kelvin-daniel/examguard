@@ -28,6 +28,7 @@ const questionSchema = z.object({
     .union([z.string(), z.array(z.string()), z.boolean()])
     .optional(),
   config: z.record(z.string(), z.unknown()).optional(),
+  imageUrl: z.string().max(2_000_000).optional().nullable(),
   sectionId: z.string().optional().nullable(),
 });
 
@@ -69,6 +70,7 @@ export async function POST(
           ? JSON.stringify(parsed.data.correct)
           : null,
       config: parsed.data.config ? JSON.stringify(parsed.data.config) : null,
+      imageUrl: parsed.data.imageUrl ?? null,
     },
   });
   return NextResponse.json({ question });

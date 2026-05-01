@@ -29,6 +29,7 @@ import {
   Copy,
   ClipboardPaste,
   GripVertical,
+  ImageIcon,
   Plus,
   Sliders,
   SplitSquareVertical,
@@ -63,6 +64,7 @@ export type EditorQuestion = {
   options: string[] | null;
   correct: unknown;
   config: Record<string, unknown> | null;
+  imageUrl: string | null;
   order: number;
 };
 
@@ -537,6 +539,12 @@ function SelectedBody({
           <span className="text-xs text-[var(--fg-muted)]">pts</span>
         </div>
       </div>
+
+      {/* Optional image */}
+      <ImageUploader
+        url={question.imageUrl}
+        onChange={(url) => onChange({ imageUrl: url })}
+      />
 
       {/* Prompt */}
       <Textarea
@@ -1251,8 +1259,86 @@ function serverToClient(q: Record<string, unknown>): EditorQuestion {
     options: q.options ? JSON.parse(q.options as string) : null,
     correct: q.correct ? JSON.parse(q.correct as string) : null,
     config: q.config ? JSON.parse(q.config as string) : null,
+    imageUrl: (q.imageUrl as string) ?? null,
     order: q.order as number,
   };
+}
+
+// ---- ImageUploader ----
+
+function ImageUploader({
+  url,
+  onChange,
+}: {
+  url: string | null;
+  onChange: (url: string | null) => void;
+}) {
+  const [uploading, setUploading] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  async function pickFile() {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "image/*";
+    input.onchange = async () => {
+      const file = input.files?.[0];
+      if (!file) return;
+      setErr(null);
+      setUploading(true);
+      const fd = new FormData();
+      fd.append("file", file);
+      try {
+        const res = await fetch("/api/upload", { method: "POST", body: fd });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          setErr(data.error ?? "Upload failed");
+          return;
+        }
+        const { url: uploadedUrl } = await res.json();
+        onChange(uploadedUrl);
+      } finally {
+        setUploading(false);
+      }
+    };
+    input.click();
+  }
+
+  if (url) {
+    return (
+      <div className="relative mb-3 group">
+        {/* Use plain img — uploaded URL may be data: or remote */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={url}
+          alt="Question attachment"
+          className="w-full max-h-72 object-contain rounded-xl border border-[var(--border)] bg-[var(--bg-muted)]"
+        />
+        <button
+          type="button"
+          onClick={() => onChange(null)}
+          className="absolute top-2 right-2 h-8 w-8 rounded-full bg-black/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+          title="Remove image"
+        >
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={pickFile}
+      disabled={uploading}
+      className="mb-3 w-full rounded-xl border border-dashed border-[var(--border-strong)] py-3 px-4 text-sm text-[var(--fg-muted)] hover:border-[var(--primary)] hover:text-[var(--fg)] flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
+    >
+      <ImageIcon className="h-4 w-4" />
+      {uploading ? "Uploading…" : "Add image"}
+      {err && (
+        <span className="text-xs text-[#a83b4f] ml-2">{err}</span>
+      )}
+    </button>
+  );
 }
 
 // Re-export the shared input for callers that want to render a preview

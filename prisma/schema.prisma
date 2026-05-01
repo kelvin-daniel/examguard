@@ -19,6 +19,7 @@ model User {
   createdAt  DateTime  @default(now())
   exams      Exam[]
   sessions   Session[]
+  resetTokens PasswordResetToken[]
 }
 
 model Session {
@@ -28,6 +29,16 @@ model Session {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   expiresAt DateTime
   createdAt DateTime @default(now())
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  token     String    @unique
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
 }
 
 model Exam {
@@ -91,6 +102,7 @@ model Question {
   options        String?
   correct        String?
   config         String?   // JSON for type-specific config (linearscale: {min,max,minLabel,maxLabel}; date: {includeTime})
+  imageUrl       String?   // Optional image attached to the question
   answers        Answer[]
 }
 

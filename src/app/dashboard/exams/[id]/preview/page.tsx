@@ -40,6 +40,7 @@ export default async function ExamPreviewPage({
     required: q.required,
     options: q.options ? (JSON.parse(q.options) as string[]) : null,
     config: q.config ? (JSON.parse(q.config) as Record<string, unknown>) : null,
+    imageUrl: q.imageUrl,
   }));
 
   return (

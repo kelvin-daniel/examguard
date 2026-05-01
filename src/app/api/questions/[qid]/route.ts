@@ -15,6 +15,7 @@ const patchSchema = z.object({
     .optional()
     .nullable(),
   config: z.record(z.string(), z.unknown()).optional().nullable(),
+  imageUrl: z.string().max(2_000_000).optional().nullable(),
   order: z.number().int().min(0).optional(),
   sectionId: z.string().optional().nullable(),
 });
@@ -50,6 +51,7 @@ export async function PATCH(
   if (parsed.data.required !== undefined) data.required = parsed.data.required;
   if (parsed.data.shuffleOptions !== undefined)
     data.shuffleOptions = parsed.data.shuffleOptions;
+  if (parsed.data.imageUrl !== undefined) data.imageUrl = parsed.data.imageUrl;
   if (parsed.data.order !== undefined) data.order = parsed.data.order;
   if (parsed.data.sectionId !== undefined)
     data.sectionId = parsed.data.sectionId;
