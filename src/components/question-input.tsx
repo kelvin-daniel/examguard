@@ -40,7 +40,7 @@ export function QuestionInput({
                 onClick={() => onChange(String(i))}
                 className={`group w-full text-left rounded-2xl border-2 p-4 flex items-center gap-3 transition-all disabled:opacity-50 ${
                   active
-                    ? "border-[var(--primary)] bg-[#fff4ec] dark:bg-[#2e1f18]"
+                    ? "border-[var(--primary)] bg-[#eff6ff] dark:bg-[#1e293b]"
                     : "border-[var(--border)] bg-white/60 dark:bg-white/5 hover:border-[var(--border-strong)]"
                 }`}
               >
@@ -81,7 +81,7 @@ export function QuestionInput({
                 onClick={() => toggle(String(i))}
                 className={`group w-full text-left rounded-2xl border-2 p-4 flex items-center gap-3 transition-all disabled:opacity-50 ${
                   active
-                    ? "border-[var(--primary)] bg-[#fff4ec] dark:bg-[#2e1f18]"
+                    ? "border-[var(--primary)] bg-[#eff6ff] dark:bg-[#1e293b]"
                     : "border-[var(--border)] bg-white/60 dark:bg-white/5 hover:border-[var(--border-strong)]"
                 }`}
               >
@@ -144,7 +144,7 @@ export function QuestionInput({
                     <span
                       className={`h-9 w-9 rounded-full border-2 transition-all ${
                         active
-                          ? "border-[var(--primary)] bg-gradient-to-b from-[#ff9a7a] to-[#ff7a59]"
+                          ? "border-[var(--primary)] bg-gradient-to-b from-[#3b82f6] to-[#2563eb]"
                           : "border-[var(--border-strong)] bg-white/70 dark:bg-white/5 hover:border-[var(--primary)]"
                       }`}
                     />

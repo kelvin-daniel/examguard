@@ -75,7 +75,7 @@ export function JoinForm() {
         href="/"
         className="flex items-center gap-2.5 mb-6 justify-center"
       >
-        <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-[#ff9a7a] to-[#ff7a59] flex items-center justify-center shadow-[0_4px_12px_-2px_rgba(255,122,89,0.4)]">
+        <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-[#3b82f6] to-[#2563eb] flex items-center justify-center shadow-[0_4px_12px_-2px_rgba(37,99,235,0.35)]">
           <ShieldCheck className="h-5 w-5 text-white" />
         </div>
         <span className="font-semibold tracking-tight text-[var(--fg)]">
@@ -139,7 +139,7 @@ export function JoinForm() {
               />
             </div>
 
-            <div className="rounded-xl bg-[#fff4d8] dark:bg-[#3a2e1a] border border-[#ffd97a] dark:border-[#8a6420] p-3 text-xs text-[#8a6420] dark:text-[#ffd97a] flex gap-2">
+            <div className="rounded-xl bg-[#fef3c7] dark:bg-[#451a03] border border-[#fbbf24] dark:border-[#92400e] p-3 text-xs text-[#92400e] dark:text-[#fbbf24] flex gap-2">
               <Lock className="h-4 w-4 flex-shrink-0 mt-0.5" />
               <span>
                 By continuing, you agree to take this exam in a locked,
@@ -149,7 +149,7 @@ export function JoinForm() {
             </div>
 
             {err && (
-              <p className="text-sm text-[#a83b4f] bg-[#ffe4e8] dark:bg-[#3a1f24] dark:text-[#ffa8b8] px-3 py-2 rounded-lg">
+              <p className="text-sm text-[#dc2626] bg-[#fee2e2] dark:bg-[#7f1d1d] dark:text-[#fca5a5] px-3 py-2 rounded-lg">
                 {err}
               </p>
             )}

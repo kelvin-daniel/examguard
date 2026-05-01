@@ -150,16 +150,16 @@ export function MonitorClient({ examId }: { examId: string }) {
         <div className="sticky top-24 z-30 -mx-2 px-2">
           <button
             onClick={() => setReviewing(pending[0])}
-            className="w-full glass rounded-2xl p-4 flex items-center gap-3 text-left hover:shadow-[0_24px_48px_-12px_rgba(232,90,114,0.3)] transition-all border-2 border-[#ffa8b8]/50"
+            className="w-full glass rounded-2xl p-4 flex items-center gap-3 text-left hover:shadow-[0_24px_48px_-12px_rgba(220,38,38,0.25)] transition-all border-2 border-[#fca5a5]/50"
           >
-            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-[#ff8a9d] to-[#e85a72] flex items-center justify-center shadow-[0_4px_12px_-2px_rgba(232,90,114,0.4)]">
+            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-[#ef4444] to-[#dc2626] flex items-center justify-center shadow-[0_4px_12px_-2px_rgba(220,38,38,0.35)]">
               <Bell className="h-5 w-5 text-white" />
             </div>
             <div className="flex-1 min-w-0">
               <div className="font-semibold text-[var(--fg)] flex items-center gap-2">
                 {pending.length} pending review
                 {pending.length === 1 ? "" : "s"}
-                <span className="h-2 w-2 rounded-full bg-[#ff7a59] live-dot" />
+                <span className="h-2 w-2 rounded-full bg-[#2563eb] live-dot" />
               </div>
               <div className="text-sm text-[var(--fg-muted)] truncate">
                 Latest: {pending[0].attempt.studentName} —{" "}
@@ -184,7 +184,7 @@ export function MonitorClient({ examId }: { examId: string }) {
       <section>
         <div className="flex items-center gap-2 mb-4">
           <h2 className="text-lg font-semibold text-[var(--fg)]">In progress</h2>
-          <span className="h-2 w-2 rounded-full bg-[#7dd3b8] live-dot" />
+          <span className="h-2 w-2 rounded-full bg-[#10b981] live-dot" />
           <span className="text-sm text-[var(--fg-muted)]">{live.length}</span>
         </div>
         {live.length === 0 ? (
@@ -232,13 +232,13 @@ function AttemptCard({ a }: { a: AttemptRow }) {
   return (
     <Link
       href={`/dashboard/exams/attempt/${a.id}`}
-      className={`block glass rounded-2xl p-4 hover:-translate-y-1 hover:shadow-[0_24px_48px_-12px_rgba(122,78,47,0.18)] transition-all ${
+      className={`block glass rounded-2xl p-4 hover:-translate-y-1 hover:shadow-[0_24px_48px_-12px_rgba(15,23,42,0.10)] transition-all ${
         isPaused
-          ? "ring-2 ring-[#ffd97a]"
+          ? "ring-2 ring-[#fbbf24]"
           : isTerminated
-          ? "ring-2 ring-[#ffa8b8]"
+          ? "ring-2 ring-[#fca5a5]"
           : flaggy
-          ? "ring-1 ring-[#ffa8b8]/60"
+          ? "ring-1 ring-[#fca5a5]/60"
           : ""
       }`}
     >
@@ -258,7 +258,7 @@ function AttemptCard({ a }: { a: AttemptRow }) {
         </div>
         {a.status === "in_progress" ? (
           <Badge variant="success">
-            <span className="h-1.5 w-1.5 rounded-full bg-[#7dd3b8] live-dot" />
+            <span className="h-1.5 w-1.5 rounded-full bg-[#10b981] live-dot" />
             Live
           </Badge>
         ) : a.status === "paused" ? (
@@ -287,7 +287,7 @@ function AttemptCard({ a }: { a: AttemptRow }) {
       </div>
       {a.violationCount > 0 && (
         <div className="mt-3 pt-3 border-t border-[var(--border)]">
-          <div className="flex items-center gap-1 text-xs font-medium text-[#a83b4f]">
+          <div className="flex items-center gap-1 text-xs font-medium text-[#dc2626]">
             <AlertTriangle className="h-3.5 w-3.5" />
             {a.violationCount} {a.violationCount === 1 ? "flag" : "flags"}
           </div>
@@ -297,8 +297,8 @@ function AttemptCard({ a }: { a: AttemptRow }) {
                 key={v.id}
                 className={`text-[10px] px-1.5 py-0.5 rounded ${
                   v.pending
-                    ? "bg-[#ffe4e8] text-[#a83b4f]"
-                    : "bg-[#fff4d8] text-[#8a6420]"
+                    ? "bg-[#fee2e2] text-[#dc2626]"
+                    : "bg-[#fef3c7] text-[#92400e]"
                 }`}
               >
                 {VIOLATION_LABELS[v.type] ?? v.type.replace(/_/g, " ")}
@@ -331,12 +331,12 @@ function ReviewModal({
   const label =
     VIOLATION_LABELS[violation.type] ?? violation.type.replace(/_/g, " ");
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#1a1410]/60 backdrop-blur-sm animate-in">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#020617]/60 backdrop-blur-sm animate-in">
       <div className="max-w-2xl w-full glass rounded-3xl overflow-hidden">
         <div className="flex items-start justify-between gap-4 p-5 border-b border-[var(--border)]">
           <div>
             <div className="flex items-center gap-2">
-              <div className="h-8 w-8 rounded-xl bg-gradient-to-br from-[#ff8a9d] to-[#e85a72] flex items-center justify-center">
+              <div className="h-8 w-8 rounded-xl bg-gradient-to-br from-[#ef4444] to-[#dc2626] flex items-center justify-center">
                 <AlertTriangle className="h-4 w-4 text-white" />
               </div>
               <h3 className="text-lg font-semibold text-[var(--fg)]">
@@ -348,7 +348,7 @@ function ReviewModal({
                 {violation.attempt.studentName}
               </strong>
               {" — "}
-              <span className="text-[#a83b4f]">{label}</span>
+              <span className="text-[#dc2626]">{label}</span>
               <span className="mx-2">·</span>
               <span>{relTime(violation.at)}</span>
             </div>

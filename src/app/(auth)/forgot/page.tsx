@@ -34,7 +34,7 @@ export default function ForgotPage() {
     return (
       <Card>
         <CardHeader>
-          <div className="mx-auto h-12 w-12 rounded-2xl bg-gradient-to-br from-[#a4e3cd] to-[#7dd3b8] flex items-center justify-center mb-3">
+          <div className="mx-auto h-12 w-12 rounded-2xl bg-gradient-to-br from-[#34d399] to-[#10b981] flex items-center justify-center mb-3">
             <Mail className="h-6 w-6 text-white" />
           </div>
           <CardTitle className="text-2xl text-center">Check your inbox</CardTitle>

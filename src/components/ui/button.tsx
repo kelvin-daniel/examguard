@@ -11,26 +11,26 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default:
-          "bg-[#2a1f1a] text-white hover:bg-[#3a2d24] dark:bg-white dark:text-[#2a1f1a] dark:hover:bg-[#fbeee2]",
+          "bg-[var(--fg)] text-white hover:bg-[#1e293b] dark:bg-white dark:text-[var(--bg)] dark:hover:bg-slate-100",
         primary:
-          "btn-3d bg-gradient-to-b from-[#ff8a6e] to-[#ff7a59] text-white hover:from-[#ff9c84] hover:to-[#ff7a59] dark:from-[#ff9678] dark:to-[#ff7a59]",
+          "btn-3d bg-gradient-to-b from-[#3b82f6] to-[#2563eb] text-white hover:from-[#60a5fa] hover:to-[#1d4ed8]",
         outline:
-          "border border-[var(--border-strong)] bg-white/70 text-[var(--fg)] hover:bg-white backdrop-blur-sm dark:bg-white/5 dark:text-[var(--fg)] dark:hover:bg-white/10",
+          "border border-[var(--border-strong)] bg-white text-[var(--fg)] hover:bg-[var(--bg-soft)] hover:border-[var(--primary)] dark:bg-white/5 dark:hover:bg-white/10",
         ghost:
           "text-[var(--fg-muted)] hover:bg-[var(--bg-muted)] dark:hover:bg-white/5",
         destructive:
-          "bg-gradient-to-b from-[#ff7a8d] to-[#e85a72] text-white hover:from-[#ff8a9d] hover:to-[#d94a62] shadow-[0_1px_0_0_rgba(255,255,255,0.3)_inset,0_4px_12px_-2px_rgba(232,90,114,0.4)]",
+          "bg-[#ef4444] text-white hover:bg-[#dc2626] shadow-[0_1px_0_0_rgba(255,255,255,0.25)_inset,0_4px_12px_-2px_rgba(239,68,68,0.40)]",
         subtle:
-          "bg-[var(--bg-muted)] text-[var(--fg)] hover:bg-[var(--bg-soft)] dark:bg-white/5 dark:hover:bg-white/10",
+          "bg-[var(--bg-muted)] text-[var(--fg)] hover:bg-[var(--border)] dark:bg-white/5 dark:hover:bg-white/10",
         glass:
-          "glass text-[var(--fg)] hover:bg-white/80 dark:hover:bg-black/40",
+          "glass text-[var(--fg)] hover:bg-white dark:hover:bg-black/40",
       },
       size: {
-        default: "h-10 px-4 text-sm",
-        sm: "h-9 px-3 text-sm",
+        default: "h-11 px-5 text-base",
+        sm: "h-10 px-4 text-sm",
         lg: "h-12 px-6 text-base",
-        xl: "h-14 px-8 text-base",
-        icon: "h-10 w-10",
+        xl: "h-14 px-8 text-lg",
+        icon: "h-11 w-11",
       },
     },
     defaultVariants: { variant: "default", size: "default" },

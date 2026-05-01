@@ -36,7 +36,7 @@ export function UserMenu({
         onClick={() => setOpen((o) => !o)}
         className="flex items-center gap-2 rounded-xl px-2 py-1.5 hover:bg-white/40 dark:hover:bg-white/5 transition-colors"
       >
-        <div className="h-8 w-8 rounded-full bg-gradient-to-br from-[#ff9a7a] to-[#ff7a59] text-white text-xs font-semibold flex items-center justify-center shadow-[0_2px_6px_-1px_rgba(255,122,89,0.4)]">
+        <div className="h-8 w-8 rounded-full bg-gradient-to-br from-[#3b82f6] to-[#2563eb] text-white text-xs font-semibold flex items-center justify-center shadow-[0_2px_6px_-1px_rgba(37,99,235,0.35)]">
           {initials}
         </div>
         <span className="hidden sm:inline text-sm font-medium text-[var(--fg)]">

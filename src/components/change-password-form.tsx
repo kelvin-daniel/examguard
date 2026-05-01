@@ -47,7 +47,7 @@ export function ChangePasswordForm() {
 
   if (done) {
     return (
-      <div className="rounded-2xl bg-[#e8f7f0] dark:bg-[#1a3a30] border border-[#7dd3b8] p-4 text-sm text-[#2c8260] dark:text-[#7dd3b8] flex items-center gap-2">
+      <div className="rounded-2xl bg-[#d1fae5] dark:bg-[#064e3b] border border-[#10b981] p-4 text-sm text-[#047857] dark:text-[#10b981] flex items-center gap-2">
         <Check className="h-4 w-4" />
         Password updated. Redirecting you to sign in…
       </div>
@@ -94,7 +94,7 @@ export function ChangePasswordForm() {
         />
       </div>
       {err && (
-        <p className="text-sm text-[#a83b4f] bg-[#ffe4e8] dark:bg-[#3a1f24] dark:text-[#ffa8b8] px-3 py-2 rounded-lg">
+        <p className="text-sm text-[#dc2626] bg-[#fee2e2] dark:bg-[#7f1d1d] dark:text-[#fca5a5] px-3 py-2 rounded-lg">
           {err}
         </p>
       )}

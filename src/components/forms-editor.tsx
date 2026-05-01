@@ -79,16 +79,16 @@ const TYPE_META: Record<
   QType,
   { label: string; icon: typeof CircleDot; color: string }
 > = {
-  mcq: { label: "Multiple choice", icon: CircleDot, color: "#ff7a59" },
-  checkbox: { label: "Checkboxes", icon: CheckSquare, color: "#7dd3b8" },
-  dropdown: { label: "Dropdown", icon: ChevronDown, color: "#5e4a8c" },
-  truefalse: { label: "True / False", icon: CircleDot, color: "#7dd3b8" },
-  short: { label: "Short answer", icon: TypeIcon, color: "#8a6420" },
-  essay: { label: "Paragraph", icon: AlignLeft, color: "#5e4a8c" },
-  fillblank: { label: "Fill in blank", icon: TypeIcon, color: "#a83b4f" },
-  linearscale: { label: "Linear scale", icon: Sliders, color: "#5e4a8c" },
-  date: { label: "Date", icon: CalendarIcon, color: "#2c8260" },
-  time: { label: "Time", icon: ClockIcon, color: "#8a6420" },
+  mcq: { label: "Multiple choice", icon: CircleDot, color: "#2563eb" },
+  checkbox: { label: "Checkboxes", icon: CheckSquare, color: "#10b981" },
+  dropdown: { label: "Dropdown", icon: ChevronDown, color: "#5b21b6" },
+  truefalse: { label: "True / False", icon: CircleDot, color: "#10b981" },
+  short: { label: "Short answer", icon: TypeIcon, color: "#92400e" },
+  essay: { label: "Paragraph", icon: AlignLeft, color: "#5b21b6" },
+  fillblank: { label: "Fill in blank", icon: TypeIcon, color: "#dc2626" },
+  linearscale: { label: "Linear scale", icon: Sliders, color: "#5b21b6" },
+  date: { label: "Date", icon: CalendarIcon, color: "#047857" },
+  time: { label: "Time", icon: ClockIcon, color: "#92400e" },
 };
 
 // ---- main editor ----
@@ -425,7 +425,7 @@ function QuestionCard({
       }}
       className={`relative rounded-2xl bg-white/70 dark:bg-white/5 backdrop-blur-sm border transition-all overflow-hidden ${
         selected
-          ? "border-[var(--border-strong)] shadow-[0_8px_24px_-6px_rgba(122,78,47,0.15)]"
+          ? "border-[var(--border-strong)] shadow-[0_8px_24px_-6px_rgba(15,23,42,0.08)]"
           : "border-[var(--border)] hover:border-[var(--border-strong)]"
       }`}
     >
@@ -433,7 +433,7 @@ function QuestionCard({
       <div
         className={`absolute left-0 top-0 bottom-0 w-1.5 transition-all ${
           selected
-            ? "bg-gradient-to-b from-[#ff9a7a] to-[#ff7a59]"
+            ? "bg-gradient-to-b from-[#3b82f6] to-[#2563eb]"
             : "bg-transparent"
         }`}
       />
@@ -487,7 +487,7 @@ function CompactBody({
           {question.points} {question.points === 1 ? "pt" : "pts"}
         </span>
         {question.required && (
-          <span className="text-xs text-[#a83b4f] ml-auto">*</span>
+          <span className="text-xs text-[#dc2626] ml-auto">*</span>
         )}
       </div>
       <div className="text-base font-medium text-[var(--fg)] line-clamp-2">
@@ -760,7 +760,7 @@ function ChoiceEditor({
               <Icon
                 className={`h-5 w-5 ${
                   isCorrect
-                    ? "text-[#2c8260]"
+                    ? "text-[#047857]"
                     : "text-[var(--fg-subtle)] hover:text-[var(--fg-muted)]"
                 }`}
               />
@@ -836,7 +836,7 @@ function TrueFalseEditor({
             onClick={() => onChange(String(i))}
             className={`p-3 rounded-xl border-2 text-sm font-medium transition-colors ${
               active
-                ? "border-[#7dd3b8] bg-[#e8f7f0] text-[#2c8260] dark:bg-[#1a3a30] dark:text-[#7dd3b8]"
+                ? "border-[#10b981] bg-[#d1fae5] text-[#047857] dark:bg-[#064e3b] dark:text-[#10b981]"
                 : "border-[var(--border)] text-[var(--fg-muted)] hover:border-[var(--border-strong)]"
             }`}
           >
@@ -1030,11 +1030,11 @@ function SectionCard({
   onDelete: () => void;
 }) {
   return (
-    <div className="rounded-2xl border-l-4 border-l-[#b8a4e0] border-y border-r border-[var(--border)] bg-gradient-to-br from-white/80 to-[#ece3fa]/40 dark:from-white/5 dark:to-[#2a2238]/30 backdrop-blur-sm overflow-hidden">
+    <div className="rounded-2xl border-l-4 border-l-[#a78bfa] border-y border-r border-[var(--border)] bg-gradient-to-br from-white/80 to-[#ede9fe]/40 dark:from-white/5 dark:to-[#2e1065]/30 backdrop-blur-sm overflow-hidden">
       <div className="p-5">
         <div className="flex items-center gap-2 mb-2">
-          <SplitSquareVertical className="h-4 w-4 text-[#5e4a8c]" />
-          <span className="text-xs uppercase tracking-wider font-semibold text-[#5e4a8c]">
+          <SplitSquareVertical className="h-4 w-4 text-[#5b21b6]" />
+          <span className="text-xs uppercase tracking-wider font-semibold text-[#5b21b6]">
             Section
           </span>
           <Button
@@ -1146,7 +1146,7 @@ function ToolbarButton({
       title={title}
       className={`h-10 w-10 rounded-xl flex items-center justify-center transition-colors ${
         active
-          ? "bg-gradient-to-br from-[#ff9a7a] to-[#ff7a59] text-white"
+          ? "bg-gradient-to-br from-[#3b82f6] to-[#2563eb] text-white"
           : "text-[var(--fg-muted)] hover:bg-white/40 dark:hover:bg-white/5 hover:text-[var(--fg)]"
       }`}
     >
@@ -1169,7 +1169,7 @@ function BulkPasteModal({
   const [text, setText] = useState("");
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#1a1410]/60 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#020617]/60 backdrop-blur-sm">
       <div className="max-w-xl w-full glass rounded-3xl p-6">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-lg font-semibold text-[var(--fg)]">
@@ -1335,7 +1335,7 @@ function ImageUploader({
       <ImageIcon className="h-4 w-4" />
       {uploading ? "Uploading…" : "Add image"}
       {err && (
-        <span className="text-xs text-[#a83b4f] ml-2">{err}</span>
+        <span className="text-xs text-[#dc2626] ml-2">{err}</span>
       )}
     </button>
   );

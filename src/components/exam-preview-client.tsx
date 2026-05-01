@@ -62,7 +62,7 @@ export function ExamPreviewClient({
       {grouped.map((g, gi) => (
         <div key={g.section?.id ?? `none-${gi}`} className="space-y-4">
           {g.section && (
-            <div className="rounded-2xl border-l-4 border-l-[#b8a4e0] border-y border-r border-[var(--border)] bg-gradient-to-br from-white/80 to-[#ece3fa]/40 dark:from-white/5 dark:to-[#2a2238]/30 backdrop-blur-sm p-5">
+            <div className="rounded-2xl border-l-4 border-l-[#a78bfa] border-y border-r border-[var(--border)] bg-gradient-to-br from-white/80 to-[#ede9fe]/40 dark:from-white/5 dark:to-[#2e1065]/30 backdrop-blur-sm p-5">
               <h2 className="text-lg font-semibold text-[var(--fg)]">
                 {g.section.title}
               </h2>
@@ -95,7 +95,7 @@ export function ExamPreviewClient({
                 <h3 className="text-lg font-medium text-[var(--fg)]">
                   {q.prompt}
                   {q.required && (
-                    <span className="text-[#a83b4f] ml-1">*</span>
+                    <span className="text-[#dc2626] ml-1">*</span>
                   )}
                 </h3>
                 {q.description && (
@@ -116,7 +116,7 @@ export function ExamPreviewClient({
         </div>
       ))}
 
-      <div className="rounded-2xl bg-[#fff4d8] dark:bg-[#3a2e1a] border border-[#ffd97a] dark:border-[#8a6420] p-4 text-sm text-[#8a6420] dark:text-[#ffd97a] text-center">
+      <div className="rounded-2xl bg-[#fef3c7] dark:bg-[#451a03] border border-[#fbbf24] dark:border-[#92400e] p-4 text-sm text-[#92400e] dark:text-[#fbbf24] text-center">
         This is a preview — submissions and timer are disabled. Students will see
         a fullscreen-locked version with an active timer.
       </div>

@@ -18,7 +18,7 @@ export default async function AccountPage() {
 
       <header className="p-6 flex items-center justify-between max-w-3xl mx-auto w-full">
         <Link href="/" className="inline-flex items-center gap-2.5">
-          <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-[#ff9a7a] to-[#ff7a59] flex items-center justify-center shadow-[0_4px_12px_-2px_rgba(255,122,89,0.4)]">
+          <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-[#3b82f6] to-[#2563eb] flex items-center justify-center shadow-[0_4px_12px_-2px_rgba(37,99,235,0.35)]">
             <ShieldCheck className="h-5 w-5 text-white" />
           </div>
           <span className="font-semibold tracking-tight text-[var(--fg)]">

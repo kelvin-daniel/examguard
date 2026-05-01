@@ -111,7 +111,7 @@ export default async function ResultsPage({
                   </td>
                   <td className="px-4 py-3">
                     {a._count.violations > 0 ? (
-                      <span className="inline-flex items-center gap-1 text-[#a83b4f] font-medium">
+                      <span className="inline-flex items-center gap-1 text-[#dc2626] font-medium">
                         <AlertTriangle className="h-3.5 w-3.5" />
                         {a._count.violations}
                       </span>

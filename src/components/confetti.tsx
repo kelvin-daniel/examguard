@@ -16,13 +16,13 @@ type Particle = {
 };
 
 const PALETTE = [
-  "#ff7a59", // coral
-  "#ffa8b8", // rose
-  "#ffd97a", // butter
-  "#b8a4e0", // lavender
-  "#7dd3b8", // mint
-  "#ffc4a3", // peach
-  "#ff9a7a",
+  "#2563eb", // blue
+  "#3b82f6", // blue-500
+  "#60a5fa", // blue-400
+  "#0ea5e9", // sky
+  "#a78bfa", // violet
+  "#10b981", // emerald
+  "#fbbf24", // amber accent
 ];
 
 export function Confetti({

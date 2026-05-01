@@ -144,7 +144,7 @@ export function ExamEditor({
         className="rounded-3xl text-white p-6 sm:p-8 relative overflow-hidden grain"
         style={{
           background:
-            "linear-gradient(135deg, #3a2d24 0%, #4d3c30 50%, #6b3a2c 100%)",
+            "linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #1e40af 100%)",
           boxShadow:
             "0 1px 0 0 rgba(255,255,255,0.06) inset, 0 24px 48px -12px rgba(58,45,36,0.4)",
         }}
@@ -153,7 +153,7 @@ export function ExamEditor({
           className="absolute inset-0 opacity-50 pointer-events-none"
           style={{
             backgroundImage:
-              "radial-gradient(circle at 0% 0%, rgba(255,168,138,0.25), transparent 55%), radial-gradient(circle at 100% 100%, rgba(184,164,224,0.18), transparent 50%)",
+              "radial-gradient(circle at 0% 0%, rgba(59,130,246,0.20), transparent 55%), radial-gradient(circle at 100% 100%, rgba(167,139,250,0.18), transparent 50%)",
           }}
         />
         <div className="relative flex flex-col sm:flex-row sm:items-start justify-between gap-4">
@@ -190,7 +190,7 @@ export function ExamEditor({
               href={joinUrl}
               target="_blank"
               rel="noreferrer"
-              className="text-xs text-[#ffc4a3] hover:text-[#ffd9c4] truncate max-w-[220px]"
+              className="text-xs text-[#bfdbfe] hover:text-[#dbeafe] truncate max-w-[220px]"
             >
               {joinUrl}
             </a>
@@ -447,14 +447,14 @@ export function ExamEditor({
               {savingSettings ? "Saving…" : "Save settings"}
             </Button>
             {savedMark && (
-              <span className="text-sm text-[#2c8260] flex items-center gap-1 animate-in">
+              <span className="text-sm text-[#047857] flex items-center gap-1 animate-in">
                 <Check className="h-4 w-4" /> Saved
               </span>
             )}
           </div>
 
           <div className="pt-6 border-t border-[var(--border)]">
-            <h3 className="font-semibold text-[#a83b4f] mb-1">Danger zone</h3>
+            <h3 className="font-semibold text-[#dc2626] mb-1">Danger zone</h3>
             <p className="text-sm text-[var(--fg-muted)] mb-3">
               Deleting this exam removes all questions, attempts, and evidence.
             </p>
@@ -504,11 +504,11 @@ function StatusBadge({ status }: { status: string }) {
     draft: { label: "Draft", className: "bg-white/15 text-white" },
     scheduled: {
       label: "Scheduled",
-      className: "bg-[#b8a4e0]/30 text-[#ddd0fa]",
+      className: "bg-[#a78bfa]/30 text-[#ddd6fe]",
     },
     live: {
       label: "Live",
-      className: "bg-[#7dd3b8]/25 text-[#b8edd8]",
+      className: "bg-[#10b981]/25 text-[#a7f3d0]",
     },
     ended: { label: "Ended", className: "bg-white/10 text-white/70" },
   };
@@ -518,7 +518,7 @@ function StatusBadge({ status }: { status: string }) {
       className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium ${s.className}`}
     >
       {status === "live" && (
-        <span className="h-1.5 w-1.5 rounded-full bg-[#7dd3b8] live-dot" />
+        <span className="h-1.5 w-1.5 rounded-full bg-[#10b981] live-dot" />
       )}
       {s.label}
     </span>

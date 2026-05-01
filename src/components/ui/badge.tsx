@@ -16,22 +16,20 @@ export function Badge({
 }: React.HTMLAttributes<HTMLSpanElement> & { variant?: Variant }) {
   const styles: Record<Variant, string> = {
     default:
-      "bg-[var(--bg-muted)] text-[var(--fg-muted)] dark:bg-white/5 dark:text-[var(--fg-muted)]",
+      "bg-[var(--bg-muted)] text-[var(--fg-muted)] dark:bg-white/10 dark:text-[var(--fg-muted)]",
     success:
-      "bg-[#e8f7f0] text-[#2c8260] dark:bg-[#1a3a30] dark:text-[#7dd3b8]",
+      "bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300",
     warning:
-      "bg-[#fff4d8] text-[#8a6420] dark:bg-[#3a2e1a] dark:text-[#ffd97a]",
-    danger:
-      "bg-[#ffe4e8] text-[#a83b4f] dark:bg-[#3a1f24] dark:text-[#ffa8b8]",
-    info:
-      "bg-[#ece3fa] text-[#5e4a8c] dark:bg-[#2a2238] dark:text-[#b8a4e0]",
+      "bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-300",
+    danger: "bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-300",
+    info: "bg-[var(--primary-bg)] text-[var(--primary-hover)] dark:bg-[#1e3a8a] dark:text-[#93c5fd]",
     outline:
       "border border-[var(--border-strong)] text-[var(--fg-muted)] dark:border-white/15",
   };
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium",
+        "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium",
         styles[variant],
         className
       )}

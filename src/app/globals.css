@@ -4,63 +4,70 @@
 @variant dark (&:where(.dark, .dark *));
 
 :root {
-  /* Warm pastel palette */
-  --bg: #fdf8f3;        /* warm cream */
-  --bg-soft: #fbeee2;   /* peach mist */
-  --bg-muted: #f7e6d5;  /* deeper cream */
+  /* Cool, professional palette — white canvas with blue trust accents */
+  --bg: #ffffff;
+  --bg-soft: #f8fafc;     /* slate-50 */
+  --bg-muted: #f1f5f9;    /* slate-100 */
   --surface: #ffffff;
   --surface-elev: #ffffff;
-  --fg: #2a1f1a;        /* warm dark brown */
-  --fg-muted: #6b574a;
-  --fg-subtle: #9c8473;
 
-  --border: #f0dccb;
-  --border-strong: #e6c8ad;
+  --fg: #0f172a;          /* slate-900 */
+  --fg-muted: #475569;    /* slate-600 */
+  --fg-subtle: #94a3b8;   /* slate-400 */
 
-  --primary: #ff7a59;       /* warm coral */
-  --primary-soft: #ffb89a;
+  --border: #e2e8f0;      /* slate-200 */
+  --border-strong: #cbd5e1;/* slate-300 */
+
+  --primary: #2563eb;     /* blue-600 — trust */
+  --primary-hover: #1d4ed8;/* blue-700 */
+  --primary-soft: #93c5fd;/* blue-300 */
+  --primary-bg: #eff6ff;  /* blue-50 */
   --primary-fg: #ffffff;
 
-  --accent-lavender: #b8a4e0;
-  --accent-mint: #7dd3b8;
-  --accent-peach: #ffc4a3;
-  --accent-butter: #ffd97a;
-  --accent-rose: #ffa8b8;
+  /* Accents kept for variety, all in cool/professional family */
+  --accent-sky: #0ea5e9;
+  --accent-violet: #8b5cf6;
+  --accent-emerald: #10b981;
+  --accent-amber: #f59e0b;
+  --accent-rose: #f43f5e;
 
   --shadow-glass:
-    0 1px 0 0 rgba(255, 255, 255, 0.6) inset,
-    0 -1px 0 0 rgba(0, 0, 0, 0.04) inset,
-    0 4px 12px -2px rgba(122, 78, 47, 0.08),
-    0 16px 32px -8px rgba(122, 78, 47, 0.12);
+    0 1px 0 0 rgba(255, 255, 255, 0.7) inset,
+    0 -1px 0 0 rgba(15, 23, 42, 0.04) inset,
+    0 4px 12px -2px rgba(15, 23, 42, 0.04),
+    0 16px 32px -8px rgba(15, 23, 42, 0.08);
 
   --shadow-card:
-    0 1px 0 0 rgba(255, 255, 255, 0.7) inset,
-    0 1px 2px rgba(122, 78, 47, 0.04),
-    0 8px 24px -8px rgba(122, 78, 47, 0.12);
+    0 1px 0 0 rgba(255, 255, 255, 0.8) inset,
+    0 1px 2px rgba(15, 23, 42, 0.04),
+    0 8px 24px -8px rgba(15, 23, 42, 0.08);
 
   --shadow-3d:
     0 1px 0 0 rgba(255, 255, 255, 0.6) inset,
-    0 2px 4px rgba(122, 78, 47, 0.04),
-    0 8px 16px -4px rgba(122, 78, 47, 0.08),
-    0 24px 48px -12px rgba(122, 78, 47, 0.18);
+    0 2px 4px rgba(15, 23, 42, 0.04),
+    0 8px 16px -4px rgba(15, 23, 42, 0.06),
+    0 24px 48px -12px rgba(15, 23, 42, 0.12);
 }
 
 .dark {
-  --bg: #1a1410;        /* deep warm black */
-  --bg-soft: #261d18;
-  --bg-muted: #2e2520;
-  --surface: #221a15;
-  --surface-elev: #2a201a;
-  --fg: #fdf4e8;
-  --fg-muted: #c4b3a3;
-  --fg-subtle: #8a7868;
+  --bg: #020617;          /* slate-950 */
+  --bg-soft: #0f172a;     /* slate-900 */
+  --bg-muted: #1e293b;    /* slate-800 */
+  --surface: #0f172a;
+  --surface-elev: #1e293b;
 
-  --border: #3a2d24;
-  --border-strong: #4d3c30;
+  --fg: #f1f5f9;          /* slate-100 */
+  --fg-muted: #cbd5e1;    /* slate-300 */
+  --fg-subtle: #64748b;   /* slate-500 */
 
-  --primary: #ff8b6e;
-  --primary-soft: #d4734f;
-  --primary-fg: #1a1410;
+  --border: #1e293b;
+  --border-strong: #334155;
+
+  --primary: #3b82f6;
+  --primary-hover: #60a5fa;
+  --primary-soft: #1e40af;
+  --primary-bg: #1e3a8a;
+  --primary-fg: #ffffff;
 
   --shadow-glass:
     0 1px 0 0 rgba(255, 255, 255, 0.04) inset,
@@ -88,6 +95,28 @@
   --color-primary: var(--primary);
   --font-sans: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+
+  /* Larger base type — minimum 16px everywhere */
+  --text-xs: 13px;
+  --text-xs--line-height: 1.5;
+  --text-sm: 15px;
+  --text-sm--line-height: 1.55;
+  --text-base: 17px;
+  --text-base--line-height: 1.65;
+  --text-lg: 19px;
+  --text-lg--line-height: 1.55;
+  --text-xl: 22px;
+  --text-xl--line-height: 1.4;
+  --text-2xl: 26px;
+  --text-2xl--line-height: 1.3;
+  --text-3xl: 32px;
+  --text-3xl--line-height: 1.2;
+  --text-4xl: 40px;
+  --text-4xl--line-height: 1.15;
+  --text-5xl: 52px;
+  --text-5xl--line-height: 1.05;
+  --text-6xl: 64px;
+  --text-6xl--line-height: 1;
 }
 
 html,
@@ -97,14 +126,26 @@ body {
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
   overscroll-behavior-y: none;
+  font-size: 17px;
 }
 
 body {
   font-family: var(--font-sans);
+  letter-spacing: -0.005em;
 }
 
 *:focus-visible {
-  outline: none;
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+input,
+select,
+textarea,
+button {
+  font-size: inherit;
+  font-family: inherit;
 }
 
 .exam-locked {
@@ -121,75 +162,67 @@ body {
   scrollbar-width: none;
 }
 
-/* ---- Premium effects ---- */
+/* ---- Premium effects, blue edition ---- */
 
-/* Aurora gradient that flows behind the whole landing page */
 .aurora {
   background:
-    radial-gradient(ellipse 60% 50% at 20% 10%, rgba(255, 184, 154, 0.55), transparent 60%),
-    radial-gradient(ellipse 50% 40% at 80% 20%, rgba(184, 164, 224, 0.45), transparent 60%),
-    radial-gradient(ellipse 70% 50% at 50% 50%, rgba(255, 217, 122, 0.4), transparent 60%),
-    radial-gradient(ellipse 60% 50% at 20% 90%, rgba(125, 211, 184, 0.35), transparent 60%),
-    radial-gradient(ellipse 50% 40% at 90% 80%, rgba(255, 168, 184, 0.4), transparent 60%);
+    radial-gradient(ellipse 80% 60% at 15% 0%, rgba(59, 130, 246, 0.08), transparent 60%),
+    radial-gradient(ellipse 60% 50% at 85% 10%, rgba(14, 165, 233, 0.08), transparent 65%),
+    radial-gradient(ellipse 70% 50% at 50% 100%, rgba(99, 102, 241, 0.06), transparent 60%);
 }
 .dark .aurora {
   background:
-    radial-gradient(ellipse 60% 50% at 20% 10%, rgba(212, 115, 79, 0.25), transparent 60%),
-    radial-gradient(ellipse 50% 40% at 80% 20%, rgba(124, 102, 168, 0.25), transparent 60%),
-    radial-gradient(ellipse 70% 50% at 50% 50%, rgba(184, 142, 60, 0.18), transparent 60%),
-    radial-gradient(ellipse 60% 50% at 20% 90%, rgba(80, 140, 120, 0.18), transparent 60%),
-    radial-gradient(ellipse 50% 40% at 90% 80%, rgba(168, 100, 110, 0.2), transparent 60%);
+    radial-gradient(ellipse 80% 60% at 15% 0%, rgba(59, 130, 246, 0.15), transparent 60%),
+    radial-gradient(ellipse 60% 50% at 85% 10%, rgba(14, 165, 233, 0.12), transparent 65%),
+    radial-gradient(ellipse 70% 50% at 50% 100%, rgba(99, 102, 241, 0.10), transparent 60%);
 }
 
-/* Glass card */
 .glass {
-  background: rgba(255, 255, 255, 0.62);
-  backdrop-filter: blur(18px) saturate(140%);
-  -webkit-backdrop-filter: blur(18px) saturate(140%);
-  border: 1px solid rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(16px) saturate(140%);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+  border: 1px solid var(--border);
   box-shadow: var(--shadow-glass);
 }
 .dark .glass {
-  background: rgba(40, 30, 24, 0.55);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid var(--border);
 }
 
 .glass-soft {
-  background: rgba(255, 255, 255, 0.45);
+  background: rgba(255, 255, 255, 0.7);
   backdrop-filter: blur(12px) saturate(140%);
   -webkit-backdrop-filter: blur(12px) saturate(140%);
-  border: 1px solid rgba(255, 255, 255, 0.5);
+  border: 1px solid var(--border);
 }
 .dark .glass-soft {
-  background: rgba(40, 30, 24, 0.4);
-  border: 1px solid rgba(255, 255, 255, 0.04);
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid var(--border);
 }
 
-/* 3D button shadow */
 .btn-3d {
   box-shadow:
-    0 1px 0 0 rgba(255, 255, 255, 0.4) inset,
-    0 -2px 0 0 rgba(0, 0, 0, 0.12) inset,
-    0 1px 2px rgba(122, 78, 47, 0.1),
-    0 4px 12px -2px rgba(255, 122, 89, 0.4);
+    0 1px 0 0 rgba(255, 255, 255, 0.25) inset,
+    0 -2px 0 0 rgba(0, 0, 0, 0.10) inset,
+    0 1px 2px rgba(37, 99, 235, 0.10),
+    0 4px 12px -2px rgba(37, 99, 235, 0.40);
   transition: all 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 .btn-3d:hover {
   transform: translateY(-1px);
   box-shadow:
-    0 1px 0 0 rgba(255, 255, 255, 0.5) inset,
-    0 -2px 0 0 rgba(0, 0, 0, 0.12) inset,
-    0 2px 4px rgba(122, 78, 47, 0.1),
-    0 8px 20px -2px rgba(255, 122, 89, 0.5);
+    0 1px 0 0 rgba(255, 255, 255, 0.30) inset,
+    0 -2px 0 0 rgba(0, 0, 0, 0.10) inset,
+    0 2px 4px rgba(37, 99, 235, 0.12),
+    0 8px 20px -2px rgba(37, 99, 235, 0.50);
 }
 .btn-3d:active {
   transform: translateY(0);
   box-shadow:
-    0 1px 0 0 rgba(255, 255, 255, 0.3) inset,
-    0 1px 2px rgba(122, 78, 47, 0.1);
+    0 1px 0 0 rgba(255, 255, 255, 0.20) inset,
+    0 1px 2px rgba(37, 99, 235, 0.10);
 }
 
-/* Card with depth */
 .card-3d {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -197,7 +230,6 @@ body {
   box-shadow: var(--shadow-3d);
 }
 
-/* Float animation for hero accents */
 @keyframes float-slow {
   0%, 100% { transform: translateY(0) rotate(0deg); }
   50% { transform: translateY(-12px) rotate(2deg); }
@@ -214,11 +246,6 @@ body {
 .float-med { animation: float-med 5s ease-in-out infinite; }
 .float-fast { animation: float-fast 4s ease-in-out infinite; }
 
-/* Smooth section flow — instead of hard borders, use a vertical gradient */
-.section-flow {
-  background: linear-gradient(180deg, transparent 0%, var(--bg-soft) 50%, transparent 100%);
-}
-
 @keyframes fadeSlideUp {
   from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
@@ -231,17 +258,15 @@ body {
 }
 .live-dot { animation: pulse-dot 2s ease-in-out infinite; }
 
-/* Subtle grain for premium feel */
 .grain::before {
   content: "";
   position: absolute;
   inset: 0;
   pointer-events: none;
-  opacity: 0.4;
+  opacity: 0.25;
   mix-blend-mode: overlay;
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.06 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.04 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
 }
 
-/* Theme transition */
 html { transition: background-color 0.25s ease, color 0.25s ease; }
 .theme-transition * { transition: background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease; }

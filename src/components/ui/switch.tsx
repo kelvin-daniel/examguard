@@ -24,16 +24,16 @@ export function Switch({
       disabled={disabled}
       onClick={() => onChange(!checked)}
       className={cn(
-        "relative h-6 w-11 rounded-full transition-colors shrink-0 shadow-[inset_0_1px_2px_rgba(122,78,47,0.15)] disabled:opacity-50",
+        "relative h-6 w-11 rounded-full transition-colors shrink-0 shadow-[inset_0_1px_2px_rgba(15,23,42,0.10)] disabled:opacity-50",
         checked
-          ? "bg-gradient-to-b from-[#ff9a7a] to-[#ff7a59]"
+          ? "bg-gradient-to-b from-[#3b82f6] to-[#2563eb]"
           : "bg-[var(--bg-muted)] dark:bg-white/10",
         className
       )}
     >
       <span
         className={cn(
-          "absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white transition-transform shadow-[0_1px_3px_rgba(0,0,0,0.2)]",
+          "absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white transition-transform shadow-[0_1px_3px_rgba(15,23,42,0.2)]",
           checked ? "translate-x-[20px]" : "translate-x-0"
         )}
       />
@@ -62,9 +62,9 @@ export function SwitchRow({
       )}
     >
       <div className="min-w-0">
-        <div className="text-sm font-medium text-[var(--fg)]">{label}</div>
+        <div className="text-base font-medium text-[var(--fg)]">{label}</div>
         {description && (
-          <div className="text-xs text-[var(--fg-muted)] mt-0.5">
+          <div className="text-sm text-[var(--fg-muted)] mt-0.5">
             {description}
           </div>
         )}

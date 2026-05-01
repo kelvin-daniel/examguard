@@ -83,7 +83,7 @@ function ResetForm() {
     return (
       <Card>
         <CardHeader>
-          <div className="mx-auto h-12 w-12 rounded-2xl bg-gradient-to-br from-[#a4e3cd] to-[#7dd3b8] flex items-center justify-center mb-3">
+          <div className="mx-auto h-12 w-12 rounded-2xl bg-gradient-to-br from-[#34d399] to-[#10b981] flex items-center justify-center mb-3">
             <Check className="h-6 w-6 text-white" />
           </div>
           <CardTitle className="text-2xl text-center">
@@ -129,7 +129,7 @@ function ResetForm() {
             />
           </div>
           {err && (
-            <p className="text-sm text-[#a83b4f] bg-[#ffe4e8] dark:bg-[#3a1f24] dark:text-[#ffa8b8] px-3 py-2 rounded-lg">
+            <p className="text-sm text-[#dc2626] bg-[#fee2e2] dark:bg-[#7f1d1d] dark:text-[#fca5a5] px-3 py-2 rounded-lg">
               {err}
             </p>
           )}

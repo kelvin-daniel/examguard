@@ -47,7 +47,7 @@ export default async function AttemptDetailPage({
           </div>
           <div className="text-right">
             {attempt.score !== null && attempt.maxScore !== null ? (
-              <div className="text-4xl font-semibold tracking-tight bg-gradient-to-br from-[#ff7a59] to-[#ffa8b8] bg-clip-text text-transparent">
+              <div className="text-4xl font-semibold tracking-tight bg-gradient-to-br from-[#2563eb] to-[#fca5a5] bg-clip-text text-transparent">
                 {attempt.score}
                 <span className="text-[var(--fg-subtle)] text-xl">
                   /{attempt.maxScore}
@@ -77,7 +77,7 @@ export default async function AttemptDetailPage({
       {attempt.violations.length > 0 && (
         <section className="mt-8">
           <h2 className="text-lg font-semibold mb-3 flex items-center gap-2 text-[var(--fg)]">
-            <AlertTriangle className="h-5 w-5 text-[#ff7a59]" />
+            <AlertTriangle className="h-5 w-5 text-[#2563eb]" />
             Violation log
           </h2>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -168,7 +168,7 @@ export default async function AttemptDetailPage({
                         {options?.[Number(studentIdx)] ?? "—"}
                       </strong>
                       {correctIdx !== null && (
-                        <span className="ml-2 text-[#2c8260]">
+                        <span className="ml-2 text-[#047857]">
                           (Correct: {options?.[Number(correctIdx)]})
                         </span>
                       )}

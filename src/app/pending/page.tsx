@@ -29,7 +29,7 @@ export default async function PendingPage({
 
       <header className="p-6 flex items-center justify-between max-w-6xl mx-auto w-full">
         <Link href="/" className="inline-flex items-center gap-2.5">
-          <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-[#ff9a7a] to-[#ff7a59] flex items-center justify-center shadow-[0_4px_12px_-2px_rgba(255,122,89,0.4)]">
+          <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-[#3b82f6] to-[#2563eb] flex items-center justify-center shadow-[0_4px_12px_-2px_rgba(37,99,235,0.35)]">
             <ShieldCheck className="h-5 w-5 text-white" />
           </div>
           <span className="font-semibold tracking-tight text-[var(--fg)]">
@@ -66,8 +66,8 @@ function PendingView({
 }) {
   return (
     <>
-      <div className="mx-auto h-16 w-16 rounded-2xl bg-gradient-to-br from-[#ffd97a] to-[#ffc4a3] flex items-center justify-center mb-6 shadow-[0_8px_24px_-4px_rgba(255,196,123,0.4)]">
-        <Clock className="h-8 w-8 text-[#8a6420]" />
+      <div className="mx-auto h-16 w-16 rounded-2xl bg-gradient-to-br from-[#fbbf24] to-[#bfdbfe] flex items-center justify-center mb-6 shadow-[0_8px_24px_-4px_rgba(251,191,36,0.30)]">
+        <Clock className="h-8 w-8 text-[#92400e]" />
       </div>
       <h1 className="text-3xl font-semibold tracking-tight text-[var(--fg)]">
         {justRegistered ? "Account created" : "Waiting for approval"}
@@ -94,7 +94,7 @@ function PendingView({
 function RejectedView() {
   return (
     <>
-      <div className="mx-auto h-16 w-16 rounded-2xl bg-gradient-to-br from-[#ff8a9d] to-[#e85a72] flex items-center justify-center mb-6">
+      <div className="mx-auto h-16 w-16 rounded-2xl bg-gradient-to-br from-[#ef4444] to-[#dc2626] flex items-center justify-center mb-6">
         <Clock className="h-8 w-8 text-white" />
       </div>
       <h1 className="text-3xl font-semibold tracking-tight text-[var(--fg)]">

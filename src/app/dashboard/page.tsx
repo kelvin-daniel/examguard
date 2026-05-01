@@ -43,8 +43,8 @@ export default async function DashboardPage() {
 
       {exams.length === 0 ? (
         <div className="glass rounded-3xl p-12 text-center">
-          <div className="mx-auto h-14 w-14 rounded-2xl bg-gradient-to-br from-[#ffd97a] to-[#ffc4a3] flex items-center justify-center mb-4 shadow-[0_4px_12px_-2px_rgba(122,78,47,0.15)]">
-            <FileText className="h-6 w-6 text-[#8a6420]" />
+          <div className="mx-auto h-14 w-14 rounded-2xl bg-gradient-to-br from-[#fbbf24] to-[#bfdbfe] flex items-center justify-center mb-4 shadow-[0_4px_12px_-2px_rgba(15,23,42,0.08)]">
+            <FileText className="h-6 w-6 text-[#92400e]" />
           </div>
           <h3 className="font-semibold text-[var(--fg)]">
             No exams yet
@@ -65,7 +65,7 @@ export default async function DashboardPage() {
             <Link
               key={e.id}
               href={`/dashboard/exams/${e.id}`}
-              className="group glass rounded-2xl p-5 hover:-translate-y-1 hover:shadow-[0_24px_48px_-12px_rgba(122,78,47,0.18)] transition-all block"
+              className="group glass rounded-2xl p-5 hover:-translate-y-1 hover:shadow-[0_24px_48px_-12px_rgba(15,23,42,0.10)] transition-all block"
             >
               <div className="flex items-start justify-between gap-2 mb-3">
                 <StatusBadge status={e.status} />

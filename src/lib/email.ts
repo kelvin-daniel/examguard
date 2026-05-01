@@ -63,18 +63,18 @@ async function send(email: Email): Promise<{ ok: boolean; error?: string }> {
 function shell(title: string, body: string) {
   return `<!DOCTYPE html>
 <html><head><meta charset="utf-8"></head>
-<body style="margin:0;padding:0;background:#fdf8f3;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#2a1f1a;">
-  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#fdf8f3;padding:40px 16px;">
+<body style="margin:0;padding:0;background:#ffffff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#0f172a;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#ffffff;padding:40px 16px;">
     <tr><td align="center">
-      <table role="presentation" width="560" cellspacing="0" cellpadding="0" style="max-width:560px;background:#ffffff;border-radius:18px;box-shadow:0 4px 24px rgba(122,78,47,0.08);overflow:hidden;">
-        <tr><td style="background:linear-gradient(135deg,#ff9a7a,#ff7a59);padding:24px 32px;color:#fff;font-size:20px;font-weight:600;letter-spacing:-0.01em;">
+      <table role="presentation" width="560" cellspacing="0" cellpadding="0" style="max-width:560px;background:#ffffff;border-radius:18px;box-shadow:0 4px 24px rgba(15,23,42,0.06);overflow:hidden;">
+        <tr><td style="background:linear-gradient(135deg,#3b82f6,#2563eb);padding:24px 32px;color:#fff;font-size:20px;font-weight:600;letter-spacing:-0.01em;">
           🛡️ ExamGuard
         </td></tr>
         <tr><td style="padding:32px;">
-          <h1 style="margin:0 0 16px 0;font-size:22px;color:#2a1f1a;">${title}</h1>
-          <div style="font-size:15px;line-height:1.6;color:#3a2d24;">${body}</div>
+          <h1 style="margin:0 0 16px 0;font-size:22px;color:#0f172a;">${title}</h1>
+          <div style="font-size:15px;line-height:1.6;color:#0f172a;">${body}</div>
         </td></tr>
-        <tr><td style="padding:16px 32px;background:#fbeee2;font-size:12px;color:#9c8473;text-align:center;">
+        <tr><td style="padding:16px 32px;background:#f8fafc;font-size:12px;color:#94a3b8;text-align:center;">
           ExamGuard · The honest testing platform
         </td></tr>
       </table>
@@ -98,16 +98,16 @@ export async function sendPendingApprovalToAdmins(
     html: shell(
       "New teacher signup awaiting your approval",
       `<p>A new teacher just signed up and is waiting for you to review their account:</p>
-      <p style="background:#fbeee2;border-radius:10px;padding:14px 16px;margin:16px 0;">
-        <strong style="color:#2a1f1a;">${escape(newUser.name)}</strong><br>
-        <span style="color:#6b574a;">${escape(newUser.email)}</span>
+      <p style="background:#f8fafc;border-radius:10px;padding:14px 16px;margin:16px 0;">
+        <strong style="color:#0f172a;">${escape(newUser.name)}</strong><br>
+        <span style="color:#475569;">${escape(newUser.email)}</span>
       </p>
       <p style="margin:24px 0;">
-        <a href="${adminUrl}" style="display:inline-block;background:linear-gradient(135deg,#ff9a7a,#ff7a59);color:#fff;text-decoration:none;font-weight:600;padding:12px 24px;border-radius:12px;">
+        <a href="${adminUrl}" style="display:inline-block;background:linear-gradient(135deg,#3b82f6,#2563eb);color:#fff;text-decoration:none;font-weight:600;padding:12px 24px;border-radius:12px;">
           Open admin dashboard
         </a>
       </p>
-      <p style="color:#6b574a;font-size:13px;">If you don't recognize this person, just reject the request — their account stays disabled.</p>`
+      <p style="color:#475569;font-size:13px;">If you don't recognize this person, just reject the request — their account stays disabled.</p>`
     ),
   });
 }
@@ -125,11 +125,11 @@ export async function sendApprovalGranted(user: {
       `You're in, ${escape(user.name.split(" ")[0])} 🎉`,
       `<p>Your ExamGuard account has been approved. You can now sign in and start creating exams.</p>
       <p style="margin:24px 0;">
-        <a href="${loginUrl}" style="display:inline-block;background:linear-gradient(135deg,#ff9a7a,#ff7a59);color:#fff;text-decoration:none;font-weight:600;padding:12px 24px;border-radius:12px;">
+        <a href="${loginUrl}" style="display:inline-block;background:linear-gradient(135deg,#3b82f6,#2563eb);color:#fff;text-decoration:none;font-weight:600;padding:12px 24px;border-radius:12px;">
           Sign in
         </a>
       </p>
-      <p style="color:#6b574a;font-size:13px;">Tip: students don't need accounts — just share the 6-character join code from any exam you publish.</p>`
+      <p style="color:#475569;font-size:13px;">Tip: students don't need accounts — just share the 6-character join code from any exam you publish.</p>`
     ),
   });
 }
@@ -148,11 +148,11 @@ export async function sendPasswordResetLink(
       `<p>Hi ${escape(user.name.split(" ")[0])},</p>
       <p>Click below to set a new password. This link expires in 1 hour.</p>
       <p style="margin:24px 0;">
-        <a href="${url}" style="display:inline-block;background:linear-gradient(135deg,#ff9a7a,#ff7a59);color:#fff;text-decoration:none;font-weight:600;padding:12px 24px;border-radius:12px;">
+        <a href="${url}" style="display:inline-block;background:linear-gradient(135deg,#3b82f6,#2563eb);color:#fff;text-decoration:none;font-weight:600;padding:12px 24px;border-radius:12px;">
           Reset password
         </a>
       </p>
-      <p style="color:#6b574a;font-size:13px;">If you didn't request this, you can ignore this email — your current password still works.</p>`
+      <p style="color:#475569;font-size:13px;">If you didn't request this, you can ignore this email — your current password still works.</p>`
     ),
   });
 }

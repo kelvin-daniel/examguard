@@ -242,7 +242,7 @@ export function ExamRunner({
           <div
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-mono font-semibold ${
               lowTime
-                ? "bg-[#ffe4e8] text-[#a83b4f] dark:bg-[#3a1f24] dark:text-[#ffa8b8]"
+                ? "bg-[#fee2e2] text-[#dc2626] dark:bg-[#7f1d1d] dark:text-[#fca5a5]"
                 : "bg-white/60 dark:bg-white/5 text-[var(--fg)]"
             }`}
           >
@@ -254,7 +254,7 @@ export function ExamRunner({
         {/* Progress */}
         <div className="h-1 bg-[var(--bg-muted)]">
           <div
-            className="h-full bg-gradient-to-r from-[#ff9a7a] via-[#ffa8b8] to-[#b8a4e0] transition-all"
+            className="h-full bg-gradient-to-r from-[#3b82f6] via-[#fca5a5] to-[#a78bfa] transition-all"
             style={{ width: `${((idx + 1) / total) * 100}%` }}
           />
         </div>
@@ -289,7 +289,7 @@ export function ExamRunner({
             <em className="text-[var(--fg-subtle)]">(No prompt)</em>
           )}
           {current.required && (
-            <span className="text-[#a83b4f] ml-1">*</span>
+            <span className="text-[#dc2626] ml-1">*</span>
           )}
         </h2>
         {current.description && (
@@ -356,9 +356,9 @@ export function ExamRunner({
                   onClick={() => setIdx(i)}
                   className={`h-9 min-w-9 px-2.5 rounded-lg text-sm font-medium flex-shrink-0 transition-colors ${
                     isCurrent
-                      ? "bg-gradient-to-b from-[#ff9a7a] to-[#ff7a59] text-white shadow-[0_2px_8px_-2px_rgba(255,122,89,0.5)]"
+                      ? "bg-gradient-to-b from-[#3b82f6] to-[#2563eb] text-white shadow-[0_2px_8px_-2px_rgba(37,99,235,0.45)]"
                       : isAnswered
-                      ? "bg-[#e8f7f0] text-[#2c8260] dark:bg-[#1a3a30] dark:text-[#7dd3b8]"
+                      ? "bg-[#d1fae5] text-[#047857] dark:bg-[#064e3b] dark:text-[#10b981]"
                       : "bg-white/60 dark:bg-white/5 text-[var(--fg-muted)]"
                   }`}
                 >
@@ -406,7 +406,7 @@ function StartScreen({
       <div className="aurora pointer-events-none fixed inset-0 -z-10" aria-hidden />
       <div className="min-h-screen flex items-center justify-center p-4">
         <div className="max-w-md w-full text-center">
-          <div className="h-16 w-16 mx-auto rounded-2xl bg-gradient-to-br from-[#ff9a7a] to-[#ff7a59] flex items-center justify-center mb-6 shadow-[0_8px_24px_-4px_rgba(255,122,89,0.4)]">
+          <div className="h-16 w-16 mx-auto rounded-2xl bg-gradient-to-br from-[#3b82f6] to-[#2563eb] flex items-center justify-center mb-6 shadow-[0_8px_24px_-4px_rgba(37,99,235,0.35)]">
             <ShieldCheck className="h-8 w-8 text-white" />
           </div>
           <h1 className="text-3xl font-semibold tracking-tight text-[var(--fg)]">
@@ -462,10 +462,10 @@ function PausedOverlay({
 }) {
   const label = reason ? VIOLATION_LABELS[reason] ?? reason : "Policy violation";
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-[#1a1410]/80 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-[#020617]/80 backdrop-blur-sm">
       <div className="max-w-md w-full text-center glass rounded-3xl p-8">
-        <div className="h-16 w-16 mx-auto rounded-2xl bg-gradient-to-br from-[#ffd97a] to-[#ffc4a3] flex items-center justify-center mb-6 shadow-[0_8px_24px_-4px_rgba(255,196,123,0.4)]">
-          <PauseCircle className="h-8 w-8 text-[#8a6420]" />
+        <div className="h-16 w-16 mx-auto rounded-2xl bg-gradient-to-br from-[#fbbf24] to-[#bfdbfe] flex items-center justify-center mb-6 shadow-[0_8px_24px_-4px_rgba(251,191,36,0.30)]">
+          <PauseCircle className="h-8 w-8 text-[#92400e]" />
         </div>
         <h2 className="text-2xl font-semibold tracking-tight text-[var(--fg)]">
           Exam paused
@@ -473,13 +473,13 @@ function PausedOverlay({
         <p className="mt-2 text-[var(--fg-muted)]">
           Your <strong className="text-[var(--fg)]">{examTitle}</strong> attempt
           was paused after a flagged event:{" "}
-          <strong className="text-[#a83b4f]">{label}</strong>.
+          <strong className="text-[#dc2626]">{label}</strong>.
         </p>
         <div className="mt-6 text-sm text-[var(--fg-muted)]">
           Your teacher has been notified and is reviewing the evidence.
         </div>
         <div className="mt-6 inline-flex items-center gap-2 text-xs text-[var(--fg-subtle)]">
-          <span className="h-2 w-2 rounded-full bg-[#ff7a59] live-dot" />
+          <span className="h-2 w-2 rounded-full bg-[#2563eb] live-dot" />
           Waiting for review…
         </div>
       </div>
@@ -514,7 +514,7 @@ function StatusBanners({
   return (
     <div className="max-w-3xl w-full mx-auto px-4 pt-3 space-y-2">
       {!online && (
-        <div className="rounded-xl bg-[#ffe4e8] border border-[#ffa8b8] dark:bg-[#3a1f24] dark:border-[#a83b4f] px-3 py-2 text-sm text-[#a83b4f] dark:text-[#ffa8b8] flex items-center gap-2">
+        <div className="rounded-xl bg-[#fee2e2] border border-[#fca5a5] dark:bg-[#7f1d1d] dark:border-[#dc2626] px-3 py-2 text-sm text-[#dc2626] dark:text-[#fca5a5] flex items-center gap-2">
           <WifiOff className="h-4 w-4" /> You&apos;re offline. Answers will
           re-sync when connection returns.
         </div>
@@ -522,7 +522,7 @@ function StatusBanners({
       {online && requireFullscreen && !isFullscreen && (
         <button
           onClick={onReFullscreen}
-          className="w-full rounded-xl bg-[#fff4d8] border border-[#ffd97a] dark:bg-[#3a2e1a] dark:border-[#8a6420] px-3 py-2 text-sm text-[#8a6420] dark:text-[#ffd97a] flex items-center gap-2 hover:bg-[#fff0c4]"
+          className="w-full rounded-xl bg-[#fef3c7] border border-[#fbbf24] dark:bg-[#451a03] dark:border-[#92400e] px-3 py-2 text-sm text-[#92400e] dark:text-[#fbbf24] flex items-center gap-2 hover:bg-[#dbeafe]"
         >
           <Maximize className="h-4 w-4" /> Tap to return to full-screen. Exit
           logged.

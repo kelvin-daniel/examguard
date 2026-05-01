@@ -9,12 +9,11 @@ export const Input = React.forwardRef<
     ref={ref}
     type={type}
     className={cn(
-      "flex h-11 w-full rounded-xl border border-[var(--border-strong)] bg-white/70 px-4 py-2 text-base text-[var(--fg)] transition-colors backdrop-blur-sm",
+      "flex h-12 w-full rounded-xl border border-[var(--border-strong)] bg-white px-4 py-2 text-base text-[var(--fg)] transition-colors",
       "placeholder:text-[var(--fg-subtle)]",
       "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]/30 focus-visible:border-[var(--primary)]",
       "disabled:cursor-not-allowed disabled:opacity-50",
       "dark:bg-white/5 dark:border-white/10",
-      "md:text-sm",
       className
     )}
     {...props}
@@ -29,12 +28,12 @@ export const Textarea = React.forwardRef<
   <textarea
     ref={ref}
     className={cn(
-      "flex w-full rounded-xl border border-[var(--border-strong)] bg-white/70 px-4 py-3 text-base text-[var(--fg)] transition-colors min-h-[96px] backdrop-blur-sm",
+      "flex w-full rounded-xl border border-[var(--border-strong)] bg-white px-4 py-3 text-base text-[var(--fg)] transition-colors min-h-[112px]",
       "placeholder:text-[var(--fg-subtle)]",
       "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]/30 focus-visible:border-[var(--primary)]",
       "disabled:cursor-not-allowed disabled:opacity-50",
       "dark:bg-white/5 dark:border-white/10",
-      "md:text-sm resize-y",
+      "resize-y",
       className
     )}
     {...props}

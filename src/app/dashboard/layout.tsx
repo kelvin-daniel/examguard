@@ -28,7 +28,7 @@ export default async function DashboardLayout({
         <div className="mx-3 mt-3 sm:mx-6 sm:mt-4">
           <div className="glass mx-auto max-w-6xl rounded-2xl px-4 sm:px-6 h-16 flex items-center justify-between">
             <Link href="/dashboard" className="flex items-center gap-2.5">
-              <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-[#ff9a7a] to-[#ff7a59] flex items-center justify-center shadow-[0_4px_12px_-2px_rgba(255,122,89,0.4)]">
+              <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-[#3b82f6] to-[#2563eb] flex items-center justify-center shadow-[0_4px_12px_-2px_rgba(37,99,235,0.35)]">
                 <ShieldCheck className="h-5 w-5 text-white" />
               </div>
               <span className="font-semibold tracking-tight text-[var(--fg)]">
@@ -39,9 +39,9 @@ export default async function DashboardLayout({
               {user.role === "admin" && pendingCount > 0 && (
                 <Link
                   href="/admin"
-                  className="hidden sm:inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full bg-[#ffe4e8] text-[#a83b4f] dark:bg-[#3a1f24] dark:text-[#ffa8b8] hover:bg-[#ffd0d8]"
+                  className="hidden sm:inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full bg-[#fee2e2] text-[#dc2626] dark:bg-[#7f1d1d] dark:text-[#fca5a5] hover:bg-[#fecaca]"
                 >
-                  <span className="h-1.5 w-1.5 rounded-full bg-[#e85a72] live-dot" />
+                  <span className="h-1.5 w-1.5 rounded-full bg-[#dc2626] live-dot" />
                   {pendingCount} pending
                 </Link>
               )}
