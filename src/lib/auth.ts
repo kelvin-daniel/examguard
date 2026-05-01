@@ -6,6 +6,14 @@ import { prisma } from "./prisma";
 const SESSION_COOKIE = "eg_session";
 const SESSION_DAYS = 30;
 
+export function isAdminEmail(email: string) {
+  const list = (process.env.ADMIN_EMAILS ?? "")
+    .split(",")
+    .map((s) => s.trim().toLowerCase())
+    .filter(Boolean);
+  return list.includes(email.toLowerCase());
+}
+
 export async function hashPassword(pw: string) {
   return bcrypt.hash(pw, 10);
 }
@@ -49,8 +57,24 @@ export async function getCurrentUser() {
   return session.user;
 }
 
-export async function requireUser() {
+/**
+ * Returns the current user only if they are approved (status=active).
+ * Pending or rejected users return null so route handlers can redirect them.
+ */
+export async function getActiveUser() {
   const user = await getCurrentUser();
+  if (!user || user.status !== "active") return null;
+  return user;
+}
+
+export async function requireUser() {
+  const user = await getActiveUser();
   if (!user) throw new Error("UNAUTHORIZED");
+  return user;
+}
+
+export async function requireAdmin() {
+  const user = await getActiveUser();
+  if (!user || user.role !== "admin") throw new Error("FORBIDDEN");
   return user;
 }

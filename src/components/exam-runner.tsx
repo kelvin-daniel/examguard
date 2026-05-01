@@ -4,13 +4,11 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAntiCheat, type EnforcementSettings } from "@/hooks/use-anti-cheat";
 import { Button } from "@/components/ui/button";
-import { Input, Textarea } from "@/components/ui/input";
+import { QuestionInput } from "@/components/question-input";
 import {
   Clock,
   ShieldCheck,
   Maximize,
-  Circle,
-  CircleCheck,
   ChevronLeft,
   ChevronRight,
   WifiOff,
@@ -24,9 +22,12 @@ type RunnerQuestion = {
   id: string;
   type: string;
   prompt: string;
+  description: string | null;
   points: number;
+  required: boolean;
   options: string[] | null;
   optionMap: number[] | null;
+  config: Record<string, unknown> | null;
 };
 
 type RunnerSettings = EnforcementSettings & {
@@ -278,7 +279,15 @@ export function ExamRunner({
           {current.prompt || (
             <em className="text-[var(--fg-subtle)]">(No prompt)</em>
           )}
+          {current.required && (
+            <span className="text-[#a83b4f] ml-1">*</span>
+          )}
         </h2>
+        {current.description && (
+          <p className="mt-2 text-sm text-[var(--fg-muted)] whitespace-pre-wrap">
+            {current.description}
+          </p>
+        )}
 
         <div className="mt-6">
           <QuestionInput
@@ -521,76 +530,3 @@ function StatusBanners({
   );
 }
 
-function QuestionInput({
-  question,
-  value,
-  onChange,
-}: {
-  question: RunnerQuestion;
-  value: string;
-  onChange: (v: string) => void;
-}) {
-  if (question.type === "mcq" || question.type === "truefalse") {
-    return (
-      <div className="space-y-2">
-        {(question.options ?? []).map((opt, i) => {
-          const active = value === String(i);
-          return (
-            <button
-              key={i}
-              onClick={() => onChange(String(i))}
-              className={`group w-full text-left rounded-2xl border-2 p-4 flex items-center gap-3 transition-all ${
-                active
-                  ? "border-[var(--primary)] bg-[#fff4ec] dark:bg-[#2e1f18]"
-                  : "border-[var(--border)] bg-white/60 dark:bg-white/5 hover:border-[var(--border-strong)]"
-              }`}
-            >
-              {active ? (
-                <CircleCheck className="h-5 w-5 text-[var(--primary)] flex-shrink-0" />
-              ) : (
-                <Circle className="h-5 w-5 text-[var(--fg-subtle)] flex-shrink-0" />
-              )}
-              <span
-                className={`text-base ${
-                  active
-                    ? "text-[var(--fg)] font-medium"
-                    : "text-[var(--fg)]"
-                }`}
-              >
-                {opt}
-              </span>
-            </button>
-          );
-        })}
-      </div>
-    );
-  }
-  if (question.type === "fillblank" || question.type === "short") {
-    return (
-      <Input
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder="Type your answer…"
-        autoComplete="off"
-        autoCorrect="off"
-        autoCapitalize="off"
-        spellCheck={false}
-        className="h-14 text-base"
-      />
-    );
-  }
-  if (question.type === "essay") {
-    return (
-      <Textarea
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder="Write your answer…"
-        autoComplete="off"
-        autoCorrect="off"
-        spellCheck={false}
-        className="min-h-[240px] text-base"
-      />
-    );
-  }
-  return null;
-}

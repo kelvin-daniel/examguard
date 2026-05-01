@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 import { ShieldCheck } from "lucide-react";
 import { UserMenu } from "@/components/user-menu";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -12,6 +13,13 @@ export default async function DashboardLayout({
 }) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
+  if (user.status !== "active") redirect("/pending");
+
+  // Surface pending-approval count to admins only
+  const pendingCount =
+    user.role === "admin"
+      ? await prisma.user.count({ where: { status: "pending" } })
+      : 0;
 
   return (
     <div className="relative min-h-screen overflow-hidden">
@@ -28,8 +36,21 @@ export default async function DashboardLayout({
               </span>
             </Link>
             <div className="flex items-center gap-3">
+              {user.role === "admin" && pendingCount > 0 && (
+                <Link
+                  href="/admin"
+                  className="hidden sm:inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full bg-[#ffe4e8] text-[#a83b4f] dark:bg-[#3a1f24] dark:text-[#ffa8b8] hover:bg-[#ffd0d8]"
+                >
+                  <span className="h-1.5 w-1.5 rounded-full bg-[#e85a72] live-dot" />
+                  {pendingCount} pending
+                </Link>
+              )}
               <ThemeToggle />
-              <UserMenu name={user.name} email={user.email} />
+              <UserMenu
+                name={user.name}
+                email={user.email}
+                role={user.role}
+              />
             </div>
           </div>
         </div>

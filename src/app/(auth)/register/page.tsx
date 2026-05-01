@@ -36,7 +36,8 @@ export default function RegisterPage() {
       setLoading(false);
       return;
     }
-    router.push("/dashboard");
+    const data = await res.json().catch(() => ({}));
+    router.push(data.pending ? "/pending?just-registered=1" : "/dashboard");
     router.refresh();
   }
 

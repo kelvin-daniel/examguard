@@ -8,14 +8,17 @@ datasource db {
 }
 
 model User {
-  id        String    @id @default(cuid())
-  email     String    @unique
-  name      String
-  password  String
-  role      String    @default("teacher")
-  createdAt DateTime  @default(now())
-  exams     Exam[]
-  sessions  Session[]
+  id         String    @id @default(cuid())
+  email      String    @unique
+  name       String
+  password   String
+  role       String    @default("teacher") // teacher | admin
+  status     String    @default("pending") // pending | active | rejected
+  approvedAt DateTime?
+  approvedBy String?
+  createdAt  DateTime  @default(now())
+  exams      Exam[]
+  sessions   Session[]
 }
 
 model Session {
@@ -54,23 +57,41 @@ model Exam {
 
   ownerId          String
   owner            User       @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  sections         Section[]
   questions        Question[]
   attempts         Attempt[]
   createdAt        DateTime   @default(now())
   updatedAt        DateTime   @updatedAt
 }
 
+model Section {
+  id          String     @id @default(cuid())
+  examId      String
+  exam        Exam       @relation(fields: [examId], references: [id], onDelete: Cascade)
+  order       Int
+  title       String
+  description String?
+  questions   Question[]
+}
+
 model Question {
-  id      String   @id @default(cuid())
-  examId  String
-  exam    Exam     @relation(fields: [examId], references: [id], onDelete: Cascade)
-  order   Int
-  type    String
-  prompt  String
-  points  Int      @default(1)
-  options String?
-  correct String?
-  answers Answer[]
+  id             String    @id @default(cuid())
+  examId         String
+  exam           Exam      @relation(fields: [examId], references: [id], onDelete: Cascade)
+  sectionId      String?
+  section        Section?  @relation(fields: [sectionId], references: [id], onDelete: SetNull)
+  order          Int
+  // Types: mcq | truefalse | short | essay | fillblank | checkbox | dropdown | linearscale | date | time
+  type           String
+  prompt         String
+  description    String?   // Helper text shown under prompt
+  points         Int       @default(1)
+  required       Boolean   @default(true)
+  shuffleOptions Boolean?  // null = inherit from exam-level setting
+  options        String?
+  correct        String?
+  config         String?   // JSON for type-specific config (linearscale: {min,max,minLabel,maxLabel}; date: {includeTime})
+  answers        Answer[]
 }
 
 model Attempt {

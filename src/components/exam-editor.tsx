@@ -5,25 +5,19 @@ import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea, Label } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Switch, SwitchRow } from "@/components/ui/switch";
+import { SwitchRow } from "@/components/ui/switch";
 import {
   ArrowLeft,
-  Plus,
   Trash2,
   Copy,
   Check,
   BarChart3,
+  Eye,
   MonitorPlay,
   Settings2,
-  CircleDot,
-  CircleCheck,
-  Type,
-  AlignLeft,
-  CheckSquare,
 } from "lucide-react";
-import { QuestionEditor } from "./question-editor";
-import type { EditorQuestion, QType } from "./question-editor";
+import { FormsEditor } from "./forms-editor";
+import type { EditorQuestion, EditorSection } from "./forms-editor";
 
 type ExamShape = {
   id: string;
@@ -51,98 +45,29 @@ type ExamShape = {
   allowScratchpad: boolean;
 };
 
-const TYPE_META: Record<
-  QType,
-  { label: string; icon: typeof CircleDot; color: string }
-> = {
-  mcq: { label: "Multiple choice", icon: CircleDot, color: "text-[#ff7a59]" },
-  truefalse: {
-    label: "True / False",
-    icon: CircleCheck,
-    color: "text-[#2c8260]",
-  },
-  short: { label: "Short answer", icon: Type, color: "text-[#8a6420]" },
-  essay: { label: "Essay", icon: AlignLeft, color: "text-[#5e4a8c]" },
-  fillblank: { label: "Fill in blank", icon: CheckSquare, color: "text-[#2c8260]" },
-};
-
 export function ExamEditor({
   exam,
   initialQuestions,
+  initialSections,
 }: {
   exam: ExamShape;
   initialQuestions: EditorQuestion[];
+  initialSections: EditorSection[];
 }) {
   const router = useRouter();
   const [tab, setTab] = useState<"questions" | "settings">("questions");
-  const [questions, setQuestions] = useState<EditorQuestion[]>(initialQuestions);
   const [e, setE] = useState(exam);
   const [savingSettings, setSavingSettings] = useState(false);
   const [savedMark, setSavedMark] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [adding, setAdding] = useState(false);
 
   const joinUrl = useMemo(() => {
     if (typeof window === "undefined") return "";
     return `${window.location.origin}/join?code=${e.code}`;
   }, [e.code]);
 
-  const totalPoints = questions.reduce((s, q) => s + q.points, 0);
-
-  async function addQuestion(type: QType) {
-    setAdding(true);
-    const base: Partial<EditorQuestion> = {
-      type,
-      prompt: "New question",
-      points: 1,
-    };
-    if (type === "mcq") {
-      base.options = ["Option A", "Option B", "Option C", "Option D"];
-      base.correct = "0";
-    } else if (type === "truefalse") {
-      base.options = ["True", "False"];
-      base.correct = "0";
-    } else if (type === "fillblank") {
-      base.correct = "";
-    }
-    const res = await fetch(`/api/exams/${e.id}/questions`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(base),
-    });
-    setAdding(false);
-    if (!res.ok) return;
-    const { question } = await res.json();
-    setQuestions((qs) => [
-      ...qs,
-      {
-        id: question.id,
-        type: question.type,
-        prompt: question.prompt,
-        points: question.points,
-        options: question.options ? JSON.parse(question.options) : null,
-        correct: question.correct ? JSON.parse(question.correct) : null,
-        order: question.order,
-      },
-    ]);
-  }
-
-  function updateQuestion(qid: string, patch: Partial<EditorQuestion>) {
-    setQuestions((qs) =>
-      qs.map((q) => (q.id === qid ? { ...q, ...patch } : q))
-    );
-    fetch(`/api/questions/${qid}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(patch),
-    });
-  }
-
-  async function deleteQuestion(qid: string) {
-    if (!confirm("Delete this question?")) return;
-    setQuestions((qs) => qs.filter((q) => q.id !== qid));
-    await fetch(`/api/questions/${qid}`, { method: "DELETE" });
-  }
+  const totalQuestions = initialQuestions.length;
+  const totalPoints = initialQuestions.reduce((s, q) => s + q.points, 0);
 
   async function saveSettings() {
     setSavingSettings(true);
@@ -179,7 +104,7 @@ export function ExamEditor({
   }
 
   async function publish() {
-    if (questions.length === 0) {
+    if (totalQuestions === 0) {
       alert("Add at least one question first.");
       return;
     }
@@ -193,6 +118,10 @@ export function ExamEditor({
       setE((s) => ({ ...s, status: exam.status }));
       router.refresh();
     }
+  }
+
+  function openPreview() {
+    window.open(`/dashboard/exams/${e.id}/preview`, "_blank");
   }
 
   function copyCode() {
@@ -272,9 +201,16 @@ export function ExamEditor({
           <Button
             onClick={publish}
             variant="primary"
-            disabled={questions.length === 0 || e.status === "live"}
+            disabled={totalQuestions === 0 || e.status === "live"}
           >
-            {e.status === "live" ? "Exam is live" : e.startAt ? "Schedule" : "Go live now"}
+            {e.status === "live"
+              ? "Exam is live"
+              : e.startAt
+              ? "Schedule"
+              : "Go live now"}
+          </Button>
+          <Button variant="subtle" onClick={openPreview}>
+            <Eye className="h-4 w-4" /> Preview
           </Button>
           <Button asChild variant="subtle">
             <Link href={`/dashboard/exams/${e.id}/monitor`}>
@@ -291,56 +227,30 @@ export function ExamEditor({
 
       {/* Tabs */}
       <div className="mt-8 flex gap-1 border-b border-[var(--border)]">
-        <TabButton active={tab === "questions"} onClick={() => setTab("questions")}>
+        <TabButton
+          active={tab === "questions"}
+          onClick={() => setTab("questions")}
+        >
           Questions{" "}
           <span className="ml-1 text-xs text-[var(--fg-subtle)]">
-            {questions.length} · {totalPoints} pts
+            {totalQuestions} · {totalPoints} pts
           </span>
         </TabButton>
-        <TabButton active={tab === "settings"} onClick={() => setTab("settings")}>
+        <TabButton
+          active={tab === "settings"}
+          onClick={() => setTab("settings")}
+        >
           <Settings2 className="h-4 w-4" /> Settings
         </TabButton>
       </div>
 
       {tab === "questions" && (
-        <div className="mt-6 space-y-3">
-          {questions.length === 0 && (
-            <div className="rounded-2xl border border-dashed border-[var(--border-strong)] p-10 text-center">
-              <p className="text-[var(--fg-muted)]">No questions yet. Add your first one below.</p>
-            </div>
-          )}
-          {questions.map((q, i) => (
-            <QuestionEditor
-              key={q.id}
-              index={i}
-              question={q}
-              onChange={(patch) => updateQuestion(q.id, patch)}
-              onDelete={() => deleteQuestion(q.id)}
-            />
-          ))}
-
-          <div className="glass rounded-2xl p-4">
-            <div className="text-sm font-medium text-[var(--fg)] mb-3">
-              Add a question
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {(Object.keys(TYPE_META) as QType[]).map((t) => {
-                const m = TYPE_META[t];
-                return (
-                  <Button
-                    key={t}
-                    variant="outline"
-                    size="sm"
-                    onClick={() => addQuestion(t)}
-                    disabled={adding}
-                  >
-                    <m.icon className={`h-4 w-4 ${m.color}`} />
-                    {m.label}
-                  </Button>
-                );
-              })}
-            </div>
-          </div>
+        <div className="mt-6">
+          <FormsEditor
+            examId={e.id}
+            initialQuestions={initialQuestions}
+            initialSections={initialSections}
+          />
         </div>
       )}
 

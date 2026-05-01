@@ -47,7 +47,18 @@ export default async function ExamAttemptPage({
     .map((q) => {
       let options = q.options ? (JSON.parse(q.options) as string[]) : null;
       let optionMap: number[] | null = null;
-      if (options && attempt.exam.shuffleOptions && q.type === "mcq") {
+      // Per-question shuffle override (null = inherit exam-level setting)
+      const shouldShuffle =
+        q.shuffleOptions !== null
+          ? q.shuffleOptions
+          : attempt.exam.shuffleOptions;
+      if (
+        options &&
+        shouldShuffle &&
+        (q.type === "mcq" ||
+          q.type === "checkbox" ||
+          q.type === "dropdown")
+      ) {
         const indexed = options.map((o, i) => ({ o, i }));
         const shuffled = shuffle(indexed, attempt.id + q.id);
         optionMap = shuffled.map((s) => s.i);
@@ -57,9 +68,14 @@ export default async function ExamAttemptPage({
         id: q.id,
         type: q.type,
         prompt: q.prompt,
+        description: q.description,
         points: q.points,
+        required: q.required,
         options,
         optionMap,
+        config: q.config
+          ? (JSON.parse(q.config) as Record<string, unknown>)
+          : null,
       };
     });
 

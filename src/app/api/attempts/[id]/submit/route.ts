@@ -29,16 +29,33 @@ export async function POST(
     const a = attempt.answers.find((x) => x.questionId === q.id);
     if (!a) continue;
     let correct = false;
-    if (q.type === "mcq" || q.type === "truefalse") {
+    if (
+      q.type === "mcq" ||
+      q.type === "truefalse" ||
+      q.type === "dropdown"
+    ) {
       const correctIdx = q.correct ? JSON.parse(q.correct) : null;
       correct = String(a.response) === String(correctIdx);
+    } else if (q.type === "checkbox") {
+      // correct: array of indices as strings; response: comma-separated indices
+      const correctList: string[] = q.correct
+        ? (JSON.parse(q.correct) as string[])
+        : [];
+      const studentList = String(a.response)
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
+      const setEq =
+        correctList.length === studentList.length &&
+        correctList.every((c) => studentList.includes(c));
+      correct = setEq;
     } else if (q.type === "fillblank") {
       const target = q.correct ? JSON.parse(q.correct) : "";
       correct =
         String(target).trim().toLowerCase() ===
         String(a.response).trim().toLowerCase();
     } else {
-      // short / essay → not auto-graded
+      // short / essay / linearscale / date / time → not auto-graded
       continue;
     }
     if (correct) score += q.points;

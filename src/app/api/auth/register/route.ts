@@ -1,11 +1,14 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { createSession, hashPassword } from "@/lib/auth";
+import { hashPassword, isAdminEmail } from "@/lib/auth";
 
 const schema = z.object({
   name: z.string().min(1).max(120),
-  email: z.string().email().transform((s) => s.toLowerCase()),
+  email: z
+    .string()
+    .email()
+    .transform((s) => s.toLowerCase()),
   password: z.string().min(8).max(128),
 });
 
@@ -13,10 +16,7 @@ export async function POST(req: Request) {
   const body = await req.json().catch(() => null);
   const parsed = schema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json(
-      { error: "Invalid input" },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: "Invalid input" }, { status: 400 });
   }
   const { name, email, password } = parsed.data;
   const existing = await prisma.user.findUnique({ where: { email } });
@@ -26,9 +26,25 @@ export async function POST(req: Request) {
       { status: 409 }
     );
   }
-  const user = await prisma.user.create({
-    data: { name, email, password: await hashPassword(password) },
+
+  // First account ever, OR email is in ADMIN_EMAILS → auto-promote to active admin
+  const userCount = await prisma.user.count();
+  const bootstrap = userCount === 0 || isAdminEmail(email);
+
+  await prisma.user.create({
+    data: {
+      name,
+      email,
+      password: await hashPassword(password),
+      role: bootstrap ? "admin" : "teacher",
+      status: bootstrap ? "active" : "pending",
+      approvedAt: bootstrap ? new Date() : null,
+      approvedBy: bootstrap ? "system" : null,
+    },
   });
-  await createSession(user.id);
-  return NextResponse.json({ ok: true });
+
+  return NextResponse.json({
+    ok: true,
+    pending: !bootstrap,
+  });
 }

@@ -35,7 +35,8 @@ export default function LoginPage() {
       setLoading(false);
       return;
     }
-    router.push("/dashboard");
+    const data = await res.json().catch(() => ({}));
+    router.push(data.pending ? "/pending" : "/dashboard");
     router.refresh();
   }
 
