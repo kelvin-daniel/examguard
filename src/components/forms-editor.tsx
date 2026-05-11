@@ -114,6 +114,48 @@ export function FormsEditor({
   const { toast } = useToast();
   const confirm = useConfirm();
 
+  // Refs to each item card, used for auto-scroll on selection change.
+  const itemRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+  // Track whether the *previous* render had this id selected so we only
+  // scroll on a real change — clicking the same card again shouldn't re-scroll.
+  const prevSelectedRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (selectedId && selectedId !== prevSelectedRef.current) {
+      const el = itemRefs.current.get(`q:${selectedId}`);
+      if (el) {
+        const rect = el.getBoundingClientRect();
+        const fullyVisible =
+          rect.top >= 80 && rect.bottom <= window.innerHeight - 40;
+        if (!fullyVisible) {
+          el.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+      }
+    }
+    prevSelectedRef.current = selectedId;
+  }, [selectedId]);
+
+  // Esc deselects the currently selected card.
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key !== "Escape" || !selectedId) return;
+      // Ignore when typing inside an editable element — Esc should blur
+      // the input naturally rather than yank the whole card out of selection.
+      const target = e.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.isContentEditable)
+      ) {
+        return;
+      }
+      setSelectedId(null);
+    }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [selectedId]);
+
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
   );
@@ -144,10 +186,79 @@ export function FormsEditor({
 
   // ---- mutations ----
 
+  /**
+   * Apply a new linear order of "s:<id>" / "q:<id>" keys. Walks the list,
+   * assigns sequential orders, reparents questions to the closest preceding
+   * section, and persists via the unified reorder API.
+   *
+   * `extraSections` and `extraQuestions` let callers fold newly-created
+   * records into the same pass (e.g. when inserting after the selected card).
+   */
+  function applyLinearOrder(
+    keys: string[],
+    extraSections: EditorSection[] = [],
+    extraQuestions: EditorQuestion[] = []
+  ) {
+    const newSections = [...sections, ...extraSections];
+    const newQuestions = [...questions, ...extraQuestions];
+    const sectionsById = new Map(newSections.map((s) => [s.id, s]));
+    const questionsById = new Map(newQuestions.map((q) => [q.id, q]));
+
+    let currentSectionId: string | null = null;
+    let sIdx = 0;
+    let qIdx = 0;
+    for (const key of keys) {
+      if (key.startsWith("s:")) {
+        const s = sectionsById.get(key.slice(2));
+        if (!s) continue;
+        s.order = sIdx++;
+        currentSectionId = s.id;
+      } else if (key.startsWith("q:")) {
+        const q = questionsById.get(key.slice(2));
+        if (!q) continue;
+        q.order = qIdx++;
+        q.sectionId = currentSectionId;
+      }
+    }
+    setSections([...newSections]);
+    setQuestions([...newQuestions]);
+
+    void fetch(`/api/exams/${examId}/reorder`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ items: keys }),
+    });
+  }
+
+  /**
+   * Return the linear-key list with `insertKey` placed immediately after the
+   * key for the currently selected card. If nothing is selected, the key is
+   * appended at the end.
+   */
+  function keysWithInsertAfterSelected(insertKey: string): string[] {
+    const baseKeys = ordered.map((it) =>
+      it.kind === "section" ? `s:${it.section.id}` : `q:${it.question.id}`
+    );
+    if (!selectedId) return [...baseKeys, insertKey];
+    const idx = baseKeys.indexOf(`q:${selectedId}`);
+    if (idx < 0) return [...baseKeys, insertKey];
+    return [
+      ...baseKeys.slice(0, idx + 1),
+      insertKey,
+      ...baseKeys.slice(idx + 1),
+    ];
+  }
+
   async function addQuestion(type: QType) {
-    const sectionId =
-      // attach to the last section that exists, else null
-      sections.length ? sections[sections.length - 1].id : null;
+    // Inherit the selected card's section so the new question lives in the
+    // same group, falling back to the last existing section, else null.
+    let sectionId: string | null = null;
+    if (selectedId) {
+      const selectedQ = questions.find((q) => q.id === selectedId);
+      sectionId = selectedQ?.sectionId ?? null;
+    } else if (sections.length) {
+      sectionId = sections[sections.length - 1].id;
+    }
     const base: Record<string, unknown> = {
       type,
       prompt: "Untitled question",
@@ -174,7 +285,8 @@ export function FormsEditor({
     if (!res.ok) return;
     const { question } = await res.json();
     const q = serverToClient(question);
-    setQuestions((qs) => [...qs, q]);
+    const keys = keysWithInsertAfterSelected(`q:${q.id}`);
+    applyLinearOrder(keys, [], [q]);
     setSelectedId(q.id);
   }
 
@@ -186,7 +298,8 @@ export function FormsEditor({
     });
     if (!res.ok) return;
     const { section } = await res.json();
-    setSections((ss) => [...ss, section]);
+    const keys = keysWithInsertAfterSelected(`s:${section.id}`);
+    applyLinearOrder(keys, [section], []);
   }
 
   function patchQuestion(id: string, patch: Partial<EditorQuestion>) {
@@ -238,7 +351,20 @@ export function FormsEditor({
     if (!res.ok) return;
     const { question } = await res.json();
     const dup = serverToClient(question);
-    setQuestions((qs) => [...qs, dup]);
+    // Place the duplicate immediately after the source question
+    const baseKeys = ordered.map((it) =>
+      it.kind === "section" ? `s:${it.section.id}` : `q:${it.question.id}`
+    );
+    const idx = baseKeys.indexOf(`q:${q.id}`);
+    const keys =
+      idx < 0
+        ? [...baseKeys, `q:${dup.id}`]
+        : [
+            ...baseKeys.slice(0, idx + 1),
+            `q:${dup.id}`,
+            ...baseKeys.slice(idx + 1),
+          ];
+    applyLinearOrder(keys, [], [dup]);
     setSelectedId(dup.id);
   }
 
@@ -273,47 +399,13 @@ export function FormsEditor({
   function onDragEnd(e: DragEndEvent) {
     const { active, over } = e;
     if (!over || active.id === over.id) return;
-
-    // Build the current linear order of "s:<id>" / "q:<id>" keys from `ordered`
     const keys = ordered.map((it) =>
       it.kind === "section" ? `s:${it.section.id}` : `q:${it.question.id}`
     );
     const oldIndex = keys.indexOf(active.id as string);
     const newIndex = keys.indexOf(over.id as string);
     if (oldIndex < 0 || newIndex < 0) return;
-    const moved = arrayMove(keys, oldIndex, newIndex);
-
-    // Walk the new key list and rebuild section + question state with
-    // updated orders and (for questions) reparented sectionId.
-    let currentSectionId: string | null = null;
-    let sIdx = 0;
-    let qIdx = 0;
-    const newSections = sections.slice();
-    const newQuestions = questions.slice();
-    const sectionsById = new Map(newSections.map((s) => [s.id, s]));
-    const questionsById = new Map(newQuestions.map((q) => [q.id, q]));
-
-    for (const key of moved) {
-      if (key.startsWith("s:")) {
-        const s = sectionsById.get(key.slice(2));
-        if (!s) continue;
-        s.order = sIdx++;
-        currentSectionId = s.id;
-      } else if (key.startsWith("q:")) {
-        const q = questionsById.get(key.slice(2));
-        if (!q) continue;
-        q.order = qIdx++;
-        q.sectionId = currentSectionId;
-      }
-    }
-    setSections([...newSections]);
-    setQuestions([...newQuestions]);
-
-    void fetch(`/api/exams/${examId}/reorder`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ items: moved }),
-    });
+    applyLinearOrder(arrayMove(keys, oldIndex, newIndex));
   }
 
   async function onImportFromExam(
@@ -422,10 +514,19 @@ export function FormsEditor({
               />
             )}
 
-            {ordered.map((item) => (
+            {ordered.map((item) => {
+              const key =
+                item.kind === "section"
+                  ? `s:${item.section.id}`
+                  : `q:${item.question.id}`;
+              return (
               <div
-                key={item.kind === "section" ? `s:${item.section.id}` : `q:${item.question.id}`}
-                className="relative"
+                key={key}
+                ref={(el) => {
+                  if (el) itemRefs.current.set(key, el);
+                  else itemRefs.current.delete(key);
+                }}
+                className="relative scroll-mt-24"
               >
                 {item.kind === "section" ? (
                   <SortableSectionCard
@@ -452,7 +553,8 @@ export function FormsEditor({
                   />
                 )}
               </div>
-            ))}
+              );
+            })}
           </div>
         </SortableContext>
       </DndContext>
