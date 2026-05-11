@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAntiCheat, type EnforcementSettings } from "@/hooks/use-anti-cheat";
 import { Button } from "@/components/ui/button";
 import { QuestionInput } from "@/components/question-input";
+import { useConfirm } from "@/components/ui/confirm";
 import {
   Clock,
   ShieldCheck,
@@ -75,6 +76,7 @@ export function ExamRunner({
   const [idx, setIdx] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>(initialAnswers);
   const [submitting, setSubmitting] = useState(false);
+  const confirm = useConfirm();
   const [paused, setPaused] = useState(initialStatus === "paused");
   const [pausedReason, setPausedReason] = useState<string | null>(
     initialPausedReason
@@ -181,8 +183,20 @@ export function ExamRunner({
   }
 
   async function submit(auto = false) {
-    if (!auto && !confirm("Submit your exam now? You can't make changes after."))
-      return;
+    if (!auto) {
+      const remainingUnanswered = questions.length - answered.size;
+      const ok = await confirm({
+        title: "Submit your exam?",
+        description:
+          remainingUnanswered > 0
+            ? `You have ${remainingUnanswered} question${
+                remainingUnanswered === 1 ? "" : "s"
+              } left blank. Once you submit, you can't make changes.`
+            : "You've answered every question. Once you submit, you can't make changes.",
+        confirmLabel: "Submit exam",
+      });
+      if (!ok) return;
+    }
     setSubmitting(true);
     const res = await fetch(`/api/attempts/${attemptId}/submit`, {
       method: "POST",

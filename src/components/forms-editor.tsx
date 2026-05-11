@@ -19,6 +19,8 @@ import { CSS } from "@dnd-kit/utilities";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
+import { useToast } from "@/components/ui/toast";
+import { useConfirm } from "@/components/ui/confirm";
 import {
   AlignLeft,
   Calendar as CalendarIcon,
@@ -109,6 +111,8 @@ export function FormsEditor({
     initialQuestions[0]?.id ?? null
   );
   const [bulkOpen, setBulkOpen] = useState(false);
+  const { toast } = useToast();
+  const confirm = useConfirm();
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
@@ -239,19 +243,26 @@ export function FormsEditor({
   }
 
   async function deleteQuestion(id: string) {
-    if (!confirm("Delete this question?")) return;
+    const ok = await confirm({
+      title: "Delete this question?",
+      description: "Students who already answered it will keep their response, but it won't count toward grading.",
+      confirmLabel: "Delete",
+      destructive: true,
+    });
+    if (!ok) return;
     setQuestions((qs) => qs.filter((q) => q.id !== id));
     if (selectedId === id) setSelectedId(null);
     await fetch(`/api/questions/${id}`, { method: "DELETE" });
   }
 
   async function deleteSection(id: string) {
-    if (
-      !confirm(
-        "Delete this section? Questions inside will move back to the main group."
-      )
-    )
-      return;
+    const ok = await confirm({
+      title: "Delete this section?",
+      description: "Questions inside the section will move back to the main group.",
+      confirmLabel: "Delete section",
+      destructive: true,
+    });
+    if (!ok) return;
     setSections((ss) => ss.filter((s) => s.id !== id));
     setQuestions((qs) =>
       qs.map((q) => (q.sectionId === id ? { ...q, sectionId: null } : q))
@@ -288,7 +299,11 @@ export function FormsEditor({
     });
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      alert(data.error ?? "Bulk import failed");
+      toast({
+        kind: "error",
+        title: "Bulk import failed",
+        description: data.error ?? "Couldn't parse the pasted text.",
+      });
       return;
     }
     const { questions: created } = await res.json();
@@ -299,6 +314,10 @@ export function FormsEditor({
       ),
     ]);
     setBulkOpen(false);
+    toast({
+      kind: "success",
+      title: `Imported ${created.length} question${created.length === 1 ? "" : "s"}`,
+    });
   }
 
   // ---- render ----

@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/components/ui/toast";
+import { useConfirm } from "@/components/ui/confirm";
 import {
   Check,
   Clock,
@@ -28,6 +30,8 @@ type Action = "approve" | "reject" | "promote" | "demote";
 export function AdminUsersClient() {
   const [users, setUsers] = useState<User[] | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
+  const { toast } = useToast();
+  const confirm = useConfirm();
 
   async function load() {
     const res = await fetch("/api/admin/users");
@@ -50,21 +54,45 @@ export function AdminUsersClient() {
       body: JSON.stringify({ action }),
     });
     setBusy(null);
-    if (res.ok) await load();
-    else {
+    if (res.ok) {
+      await load();
+      const label =
+        action === "approve"
+          ? "User approved"
+          : action === "reject"
+          ? "User rejected"
+          : action === "promote"
+          ? "Promoted to admin"
+          : "Demoted to teacher";
+      toast({ kind: "success", title: label });
+    } else {
       const data = await res.json().catch(() => ({}));
-      alert(data.error ?? "Action failed");
+      toast({
+        kind: "error",
+        title: "Action failed",
+        description: data.error,
+      });
     }
   }
 
   async function remove(id: string, name: string) {
-    if (!confirm(`Permanently delete ${name}? This removes all of their exams too.`))
-      return;
+    const ok = await confirm({
+      title: `Delete ${name}?`,
+      description:
+        "All of their exams, attempts, and evidence will be permanently removed.",
+      confirmLabel: "Delete user",
+      destructive: true,
+    });
+    if (!ok) return;
     setBusy(id + ":delete");
     const res = await fetch(`/api/admin/users/${id}`, { method: "DELETE" });
     setBusy(null);
-    if (res.ok) await load();
-    else alert("Delete failed");
+    if (res.ok) {
+      await load();
+      toast({ kind: "success", title: "User deleted" });
+    } else {
+      toast({ kind: "error", title: "Couldn't delete user" });
+    }
   }
 
   if (!users)

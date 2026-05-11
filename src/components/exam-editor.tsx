@@ -6,6 +6,8 @@ import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea, Label } from "@/components/ui/input";
 import { SwitchRow } from "@/components/ui/switch";
+import { useToast } from "@/components/ui/toast";
+import { useConfirm } from "@/components/ui/confirm";
 import {
   ArrowLeft,
   Trash2,
@@ -60,6 +62,8 @@ export function ExamEditor({
   const [savingSettings, setSavingSettings] = useState(false);
   const [savedMark, setSavedMark] = useState(false);
   const [copied, setCopied] = useState(false);
+  const { toast } = useToast();
+  const confirm = useConfirm();
 
   const joinUrl = useMemo(() => {
     if (typeof window === "undefined") return "";
@@ -100,12 +104,19 @@ export function ExamEditor({
       setSavedMark(true);
       setTimeout(() => setSavedMark(false), 1800);
       router.refresh();
+      toast({ kind: "success", title: "Settings saved" });
+    } else {
+      toast({ kind: "error", title: "Couldn't save settings" });
     }
   }
 
   async function publish() {
     if (totalQuestions === 0) {
-      alert("Add at least one question first.");
+      toast({
+        kind: "warning",
+        title: "Add a question first",
+        description: "Your exam needs at least one question before students can join.",
+      });
       return;
     }
     const res = await fetch(`/api/exams/${e.id}`, {
@@ -117,6 +128,17 @@ export function ExamEditor({
       const { exam } = await res.json();
       setE((s) => ({ ...s, status: exam.status }));
       router.refresh();
+      toast({
+        kind: "success",
+        title:
+          exam.status === "live"
+            ? "Exam is live"
+            : "Exam scheduled",
+        description:
+          exam.status === "live"
+            ? `Students can join with code ${e.code}.`
+            : undefined,
+      });
     }
   }
 
@@ -462,9 +484,26 @@ export function ExamEditor({
               variant="destructive"
               size="sm"
               onClick={async () => {
-                if (!confirm("Delete this exam permanently?")) return;
-                await fetch(`/api/exams/${e.id}`, { method: "DELETE" });
-                router.push("/dashboard");
+                const ok = await confirm({
+                  title: "Delete this exam?",
+                  description:
+                    "All questions, attempts, answers, and evidence will be permanently removed. This can't be undone.",
+                  confirmLabel: "Delete exam",
+                  destructive: true,
+                });
+                if (!ok) return;
+                const res = await fetch(`/api/exams/${e.id}`, {
+                  method: "DELETE",
+                });
+                if (res.ok) {
+                  toast({ kind: "success", title: "Exam deleted" });
+                  router.push("/dashboard");
+                } else {
+                  toast({
+                    kind: "error",
+                    title: "Couldn't delete exam",
+                  });
+                }
               }}
             >
               <Trash2 className="h-4 w-4" /> Delete exam

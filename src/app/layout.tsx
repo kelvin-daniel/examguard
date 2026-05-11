@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Poppins, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
+import { ToastProvider } from "@/components/ui/toast";
+import { ConfirmProvider } from "@/components/ui/confirm";
 
 const poppins = Poppins({
   variable: "--font-poppins",
@@ -44,7 +46,11 @@ export default function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: noFlashScript }} />
       </head>
       <body className="min-h-full theme-transition">
-        <ThemeProvider>{children}</ThemeProvider>
+        <ThemeProvider>
+          <ToastProvider>
+            <ConfirmProvider>{children}</ConfirmProvider>
+          </ToastProvider>
+        </ThemeProvider>
       </body>
     </html>
   );
