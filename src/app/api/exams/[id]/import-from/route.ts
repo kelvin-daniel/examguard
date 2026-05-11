@@ -53,6 +53,7 @@ export async function POST(
   // First, copy sections if asked, capturing oldId → newId map so questions
   // can be reparented in the target exam.
   const sectionMap = new Map<string, string>();
+  const createdSections: typeof source.sections = [];
   if (parsed.data.includeSections) {
     for (let i = 0; i < source.sections.length; i++) {
       const s = source.sections[i];
@@ -65,12 +66,13 @@ export async function POST(
         },
       });
       sectionMap.set(s.id, created.id);
+      createdSections.push(created);
     }
   }
 
   // Copy questions, mapping sectionId to the newly created sections (or null
   // if we're flattening or the source section was unmapped).
-  const created = await prisma.$transaction(
+  const createdQuestions = await prisma.$transaction(
     source.questions.map((q, i) =>
       prisma.question.create({
         data: {
@@ -93,7 +95,9 @@ export async function POST(
   );
 
   return NextResponse.json({
-    importedQuestions: created.length,
+    importedQuestions: createdQuestions.length,
     importedSections: sectionMap.size,
+    sections: createdSections,
+    questions: createdQuestions,
   });
 }

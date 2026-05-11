@@ -337,8 +337,24 @@ export function FormsEditor({
     const data = (await res.json()) as {
       importedQuestions: number;
       importedSections: number;
+      sections: Array<Record<string, unknown>>;
+      questions: Array<Record<string, unknown>>;
     };
     setBulkOpen(false);
+    // Splice freshly imported records into local state — no full reload.
+    setSections((ss) => [
+      ...ss,
+      ...data.sections.map((s) => ({
+        id: s.id as string,
+        order: s.order as number,
+        title: s.title as string,
+        description: (s.description as string) ?? null,
+      })),
+    ]);
+    setQuestions((qs) => [
+      ...qs,
+      ...data.questions.map((q) => serverToClient(q)),
+    ]);
     toast({
       kind: "success",
       title: `Imported ${data.importedQuestions} question${
@@ -351,11 +367,6 @@ export function FormsEditor({
           : ""
       }`,
     });
-    // Soft-refresh the page so the freshly inserted sections + questions show
-    // up with their server-assigned ids and order.
-    if (typeof window !== "undefined") {
-      window.location.reload();
-    }
   }
 
   async function onBulkPaste(text: string) {
@@ -390,7 +401,7 @@ export function FormsEditor({
   // ---- render ----
 
   return (
-    <div className="relative flex gap-6 max-w-3xl mx-auto">
+    <div className="relative max-w-3xl mx-auto">
       <DndContext
         sensors={sensors}
         collisionDetection={closestCenter}
@@ -402,18 +413,20 @@ export function FormsEditor({
           )}
           strategy={verticalListSortingStrategy}
         >
-          <div className="flex-1 space-y-3 min-w-0">
+          <div className="space-y-3 min-w-0">
             {ordered.length === 0 && (
-              <div className="rounded-2xl border border-dashed border-[var(--border-strong)] p-10 text-center">
-                <p className="text-[var(--fg-muted)]">
-                  No questions yet. Use the toolbar on the right to add your first
-                  one — or paste from a doc.
-                </p>
-              </div>
+              <EmptyState
+                onAddQuestion={(t) => addQuestion(t)}
+                onAddSection={addSection}
+                onBulk={() => setBulkOpen(true)}
+              />
             )}
 
             {ordered.map((item) => (
-              <div key={item.kind === "section" ? `s:${item.section.id}` : `q:${item.question.id}`}>
+              <div
+                key={item.kind === "section" ? `s:${item.section.id}` : `q:${item.question.id}`}
+                className="relative"
+              >
                 {item.kind === "section" ? (
                   <SortableSectionCard
                     section={item.section}
@@ -430,7 +443,7 @@ export function FormsEditor({
                     onDelete={() => deleteQuestion(item.question.id)}
                   />
                 )}
-                {/* Inline insert bar — appears immediately under the selected card */}
+                {/* Right-side insert toolbar — anchored to the selected card */}
                 {item.kind === "question" && selectedId === item.question.id && (
                   <InlineInsertBar
                     onAddQuestion={(t) => addQuestion(t)}
@@ -444,12 +457,7 @@ export function FormsEditor({
         </SortableContext>
       </DndContext>
 
-      {/* Floating add toolbar — desktop column, mobile FAB */}
-      <FloatingToolbar
-        onAddQuestion={(t) => addQuestion(t)}
-        onAddSection={addSection}
-        onBulk={() => setBulkOpen(true)}
-      />
+      {/* Mobile FAB — desktop uses the inline toolbar anchored to the selected card */}
       <MobileFab
         onAddQuestion={(t) => addQuestion(t)}
         onAddSection={addSection}
@@ -516,7 +524,84 @@ function SortableSectionCard(props: {
   );
 }
 
-// ---- InlineInsertBar — appears below the selected question card ----
+// ---- EmptyState — shown when the exam has zero questions and zero sections ----
+
+function EmptyState({
+  onAddQuestion,
+  onAddSection,
+  onBulk,
+}: {
+  onAddQuestion: (t: QType) => void;
+  onAddSection: () => void;
+  onBulk: () => void;
+}) {
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!pickerOpen) return;
+    const onDoc = (e: MouseEvent) => {
+      if (!ref.current?.contains(e.target as Node)) setPickerOpen(false);
+    };
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, [pickerOpen]);
+
+  return (
+    <div
+      ref={ref}
+      className="relative rounded-3xl border border-dashed border-[var(--border-strong)] p-10 text-center"
+    >
+      <div className="mx-auto h-14 w-14 rounded-2xl bg-gradient-to-br from-[#3b82f6] to-[#2563eb] flex items-center justify-center mb-4 shadow-[0_8px_24px_-4px_rgba(37,99,235,0.45)]">
+        <Plus className="h-7 w-7 text-white" />
+      </div>
+      <h3 className="text-xl font-semibold text-[var(--fg)]">
+        Start building your exam
+      </h3>
+      <p className="mt-2 text-sm text-[var(--fg-muted)] max-w-md mx-auto">
+        Add a question, group questions into sections, or copy from one of your
+        previous exams.
+      </p>
+      <div className="mt-6 flex flex-wrap justify-center gap-2">
+        <Button
+          variant="primary"
+          size="lg"
+          onClick={() => setPickerOpen((o) => !o)}
+        >
+          <Plus className="h-4 w-4" /> Add question
+        </Button>
+        <Button variant="outline" size="lg" onClick={onAddSection}>
+          <SplitSquareVertical className="h-4 w-4" /> Add section
+        </Button>
+        <Button variant="outline" size="lg" onClick={onBulk}>
+          <ClipboardPaste className="h-4 w-4" /> Import
+        </Button>
+      </div>
+
+      {pickerOpen && (
+        <div className="absolute left-1/2 -translate-x-1/2 mt-3 w-64 rounded-2xl glass overflow-hidden z-30 text-left">
+          {(Object.entries(TYPE_META) as [QType, (typeof TYPE_META)[QType]][]).map(
+            ([t, m]) => (
+              <button
+                key={t}
+                onClick={() => {
+                  onAddQuestion(t);
+                  setPickerOpen(false);
+                }}
+                className="w-full text-left px-3 py-2 flex items-center gap-2 text-sm hover:bg-white/40 dark:hover:bg-white/5"
+              >
+                <m.icon className="h-4 w-4" style={{ color: m.color }} />
+                {m.label}
+              </button>
+            )
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ---- InlineInsertBar — anchored to the right side of the selected card ----
 
 function InlineInsertBar({
   onAddQuestion,
@@ -542,41 +627,41 @@ function InlineInsertBar({
   return (
     <div
       ref={ref}
-      className="relative mt-2 mb-1 flex items-center justify-center gap-1.5 animate-in"
+      className="hidden lg:flex absolute -right-16 top-0 flex-col gap-1 glass rounded-2xl p-1.5 animate-in z-20"
     >
-      <div className="flex items-center gap-1 rounded-full glass px-1.5 py-1 shadow-[0_4px_12px_-4px_rgba(15,23,42,0.08)]">
-        <button
-          type="button"
-          onClick={() => setPickerOpen((o) => !o)}
-          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium text-[var(--fg)] hover:bg-[var(--bg-muted)]"
-        >
-          <Plus className="h-3.5 w-3.5 text-[var(--primary)]" />
-          Question
-        </button>
-        <span className="text-[var(--fg-subtle)]">·</span>
-        <button
-          type="button"
-          onClick={onAddSection}
-          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium text-[var(--fg)] hover:bg-[var(--bg-muted)]"
-        >
-          <SplitSquareVertical className="h-3.5 w-3.5 text-[#5b21b6]" />
-          Section
-        </button>
-        <span className="text-[var(--fg-subtle)]">·</span>
-        <button
-          type="button"
-          onClick={onBulk}
-          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium text-[var(--fg)] hover:bg-[var(--bg-muted)]"
-        >
-          <ClipboardPaste className="h-3.5 w-3.5 text-[#2563eb]" />
-          Import
-        </button>
-      </div>
+      <button
+        type="button"
+        onClick={() => setPickerOpen((o) => !o)}
+        title="Add question"
+        className={`h-10 w-10 rounded-xl flex items-center justify-center transition-colors ${
+          pickerOpen
+            ? "bg-gradient-to-br from-[#3b82f6] to-[#2563eb] text-white"
+            : "text-[var(--fg-muted)] hover:bg-[var(--bg-muted)] hover:text-[var(--fg)]"
+        }`}
+      >
+        <Plus className="h-5 w-5" />
+      </button>
+      <button
+        type="button"
+        onClick={onAddSection}
+        title="Add section"
+        className="h-10 w-10 rounded-xl flex items-center justify-center text-[var(--fg-muted)] hover:bg-[var(--bg-muted)] hover:text-[var(--fg)] transition-colors"
+      >
+        <SplitSquareVertical className="h-5 w-5" />
+      </button>
+      <button
+        type="button"
+        onClick={onBulk}
+        title="Import questions"
+        className="h-10 w-10 rounded-xl flex items-center justify-center text-[var(--fg-muted)] hover:bg-[var(--bg-muted)] hover:text-[var(--fg)] transition-colors"
+      >
+        <ClipboardPaste className="h-5 w-5" />
+      </button>
 
       {pickerOpen && (
-        <div className="absolute top-full mt-2 w-56 rounded-2xl glass overflow-hidden z-30">
-          {(Object.entries(TYPE_META) as [QType, (typeof TYPE_META)[QType]][])
-            .map(([t, m]) => (
+        <div className="absolute left-full ml-2 top-0 w-56 rounded-2xl glass overflow-hidden z-30">
+          {(Object.entries(TYPE_META) as [QType, (typeof TYPE_META)[QType]][]).map(
+            ([t, m]) => (
               <button
                 key={t}
                 onClick={() => {
@@ -588,7 +673,8 @@ function InlineInsertBar({
                 <m.icon className="h-4 w-4" style={{ color: m.color }} />
                 {m.label}
               </button>
-            ))}
+            )
+          )}
         </div>
       )}
     </div>
@@ -1275,72 +1361,8 @@ function SectionCard({
   );
 }
 
-// ---- floating add toolbar ----
-
-function FloatingToolbar({
-  onAddQuestion,
-  onAddSection,
-  onBulk,
-}: {
-  onAddQuestion: (t: QType) => void;
-  onAddSection: () => void;
-  onBulk: () => void;
-}) {
-  const [pickerOpen, setPickerOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!pickerOpen) return;
-    const onDoc = (e: MouseEvent) => {
-      if (!ref.current?.contains(e.target as Node)) setPickerOpen(false);
-    };
-    document.addEventListener("mousedown", onDoc);
-    return () => document.removeEventListener("mousedown", onDoc);
-  }, [pickerOpen]);
-
-  return (
-    <div
-      ref={ref}
-      className="hidden lg:flex flex-col gap-1 sticky top-24 self-start glass rounded-2xl p-1.5"
-    >
-      <ToolbarButton
-        onClick={() => setPickerOpen((o) => !o)}
-        title="Add question"
-        active={pickerOpen}
-      >
-        <Plus className="h-5 w-5" />
-      </ToolbarButton>
-      <ToolbarButton onClick={onAddSection} title="Add section">
-        <SplitSquareVertical className="h-5 w-5" />
-      </ToolbarButton>
-      <ToolbarButton onClick={onBulk} title="Bulk paste">
-        <ClipboardPaste className="h-5 w-5" />
-      </ToolbarButton>
-
-      {pickerOpen && (
-        <div className="absolute left-full ml-2 top-0 w-56 rounded-2xl glass overflow-hidden z-40">
-          {(Object.entries(TYPE_META) as [QType, (typeof TYPE_META)[QType]][])
-            .map(([t, m]) => (
-              <button
-                key={t}
-                onClick={() => {
-                  onAddQuestion(t);
-                  setPickerOpen(false);
-                }}
-                className="w-full text-left px-3 py-2 flex items-center gap-2 text-sm hover:bg-white/40 dark:hover:bg-white/5"
-              >
-                <m.icon className="h-4 w-4" style={{ color: m.color }} />
-                {m.label}
-              </button>
-            ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-// Mobile add-question FAB + bottom sheet. Hidden at lg+ where the floating
-// toolbar takes over.
+// Mobile add-question FAB + bottom sheet. Hidden at lg+ where the inline
+// per-card toolbar takes over.
 function MobileFab({
   onAddQuestion,
   onAddSection,
@@ -1431,31 +1453,6 @@ function MobileFab({
   );
 }
 
-function ToolbarButton({
-  onClick,
-  children,
-  title,
-  active,
-}: {
-  onClick: () => void;
-  children: React.ReactNode;
-  title: string;
-  active?: boolean;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      title={title}
-      className={`h-10 w-10 rounded-xl flex items-center justify-center transition-colors ${
-        active
-          ? "bg-gradient-to-br from-[#3b82f6] to-[#2563eb] text-white"
-          : "text-[var(--fg-muted)] hover:bg-white/40 dark:hover:bg-white/5 hover:text-[var(--fg)]"
-      }`}
-    >
-      {children}
-    </button>
-  );
-}
 
 // ---- bulk paste modal ----
 
