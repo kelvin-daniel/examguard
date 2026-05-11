@@ -367,8 +367,13 @@ export function FormsEditor({
         </SortableContext>
       </DndContext>
 
-      {/* Floating add toolbar */}
+      {/* Floating add toolbar — desktop column, mobile FAB */}
       <FloatingToolbar
+        onAddQuestion={(t) => addQuestion(t)}
+        onAddSection={addSection}
+        onBulk={() => setBulkOpen(true)}
+      />
+      <MobileFab
         onAddQuestion={(t) => addQuestion(t)}
         onAddSection={addSection}
         onBulk={() => setBulkOpen(true)}
@@ -1145,6 +1150,98 @@ function FloatingToolbar({
         </div>
       )}
     </div>
+  );
+}
+
+// Mobile add-question FAB + bottom sheet. Hidden at lg+ where the floating
+// toolbar takes over.
+function MobileFab({
+  onAddQuestion,
+  onAddSection,
+  onBulk,
+}: {
+  onAddQuestion: (t: QType) => void;
+  onAddSection: () => void;
+  onBulk: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <>
+      <button
+        onClick={() => setOpen(true)}
+        className="lg:hidden fixed bottom-6 right-6 z-30 h-14 w-14 rounded-full bg-gradient-to-br from-[#3b82f6] to-[#2563eb] text-white flex items-center justify-center shadow-[0_8px_24px_-4px_rgba(37,99,235,0.45)] active:scale-95 transition-transform"
+        aria-label="Add question or section"
+      >
+        <Plus className="h-6 w-6" />
+      </button>
+
+      {open && (
+        <div
+          className="lg:hidden fixed inset-0 z-40 flex flex-col justify-end bg-[#0f172a]/50 backdrop-blur-sm animate-in"
+          onClick={() => setOpen(false)}
+        >
+          <div
+            className="bg-[var(--surface)] rounded-t-3xl pb-[max(env(safe-area-inset-bottom),16px)] border-t border-[var(--border)] shadow-[0_-12px_32px_-8px_rgba(15,23,42,0.15)]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex justify-center pt-2 pb-1">
+              <div className="h-1.5 w-12 rounded-full bg-[var(--border-strong)]" />
+            </div>
+            <div className="px-4 py-3">
+              <div className="grid grid-cols-2 gap-2 mb-3">
+                <button
+                  onClick={() => {
+                    onAddSection();
+                    setOpen(false);
+                  }}
+                  className="flex items-center gap-2 px-3 py-3 rounded-xl bg-[var(--bg-muted)] text-[var(--fg)] text-sm font-medium"
+                >
+                  <SplitSquareVertical className="h-4 w-4 text-[#5b21b6]" />
+                  Add section
+                </button>
+                <button
+                  onClick={() => {
+                    onBulk();
+                    setOpen(false);
+                  }}
+                  className="flex items-center gap-2 px-3 py-3 rounded-xl bg-[var(--bg-muted)] text-[var(--fg)] text-sm font-medium"
+                >
+                  <ClipboardPaste className="h-4 w-4 text-[#2563eb]" />
+                  Bulk paste
+                </button>
+              </div>
+              <div className="text-xs uppercase tracking-wider text-[var(--fg-muted)] font-semibold px-1 mb-2">
+                Add question
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                {(
+                  Object.entries(TYPE_META) as [
+                    QType,
+                    (typeof TYPE_META)[QType]
+                  ][]
+                ).map(([t, m]) => (
+                  <button
+                    key={t}
+                    onClick={() => {
+                      onAddQuestion(t);
+                      setOpen(false);
+                    }}
+                    className="flex items-center gap-2 px-3 py-3 rounded-xl bg-[var(--bg-muted)] text-[var(--fg)] text-sm font-medium text-left"
+                  >
+                    <m.icon
+                      className="h-4 w-4 flex-shrink-0"
+                      style={{ color: m.color }}
+                    />
+                    <span className="truncate">{m.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 
