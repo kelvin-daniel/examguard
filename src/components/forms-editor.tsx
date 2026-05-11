@@ -273,22 +273,89 @@ export function FormsEditor({
   function onDragEnd(e: DragEndEvent) {
     const { active, over } = e;
     if (!over || active.id === over.id) return;
-    setQuestions((qs) => {
-      const oldIndex = qs.findIndex((q) => q.id === active.id);
-      const newIndex = qs.findIndex((q) => q.id === over.id);
-      if (oldIndex < 0 || newIndex < 0) return qs;
-      const moved = arrayMove(qs, oldIndex, newIndex).map((q, i) => ({
-        ...q,
-        order: i,
-      }));
-      // Persist new order
-      void fetch(`/api/exams/${examId}/reorder`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ questions: moved.map((q) => q.id) }),
-      });
-      return moved;
+
+    // Build the current linear order of "s:<id>" / "q:<id>" keys from `ordered`
+    const keys = ordered.map((it) =>
+      it.kind === "section" ? `s:${it.section.id}` : `q:${it.question.id}`
+    );
+    const oldIndex = keys.indexOf(active.id as string);
+    const newIndex = keys.indexOf(over.id as string);
+    if (oldIndex < 0 || newIndex < 0) return;
+    const moved = arrayMove(keys, oldIndex, newIndex);
+
+    // Walk the new key list and rebuild section + question state with
+    // updated orders and (for questions) reparented sectionId.
+    let currentSectionId: string | null = null;
+    let sIdx = 0;
+    let qIdx = 0;
+    const newSections = sections.slice();
+    const newQuestions = questions.slice();
+    const sectionsById = new Map(newSections.map((s) => [s.id, s]));
+    const questionsById = new Map(newQuestions.map((q) => [q.id, q]));
+
+    for (const key of moved) {
+      if (key.startsWith("s:")) {
+        const s = sectionsById.get(key.slice(2));
+        if (!s) continue;
+        s.order = sIdx++;
+        currentSectionId = s.id;
+      } else if (key.startsWith("q:")) {
+        const q = questionsById.get(key.slice(2));
+        if (!q) continue;
+        q.order = qIdx++;
+        q.sectionId = currentSectionId;
+      }
+    }
+    setSections([...newSections]);
+    setQuestions([...newQuestions]);
+
+    void fetch(`/api/exams/${examId}/reorder`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ items: moved }),
     });
+  }
+
+  async function onImportFromExam(
+    sourceExamId: string,
+    includeSections: boolean
+  ) {
+    const res = await fetch(`/api/exams/${examId}/import-from`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sourceExamId, includeSections }),
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      toast({
+        kind: "error",
+        title: "Import failed",
+        description: data.error ?? "Couldn't import from that exam.",
+      });
+      return;
+    }
+    const data = (await res.json()) as {
+      importedQuestions: number;
+      importedSections: number;
+    };
+    setBulkOpen(false);
+    toast({
+      kind: "success",
+      title: `Imported ${data.importedQuestions} question${
+        data.importedQuestions === 1 ? "" : "s"
+      }${
+        data.importedSections > 0
+          ? ` and ${data.importedSections} section${
+              data.importedSections === 1 ? "" : "s"
+            }`
+          : ""
+      }`,
+    });
+    // Soft-refresh the page so the freshly inserted sections + questions show
+    // up with their server-assigned ids and order.
+    if (typeof window !== "undefined") {
+      window.location.reload();
+    }
   }
 
   async function onBulkPaste(text: string) {
@@ -330,7 +397,9 @@ export function FormsEditor({
         onDragEnd={onDragEnd}
       >
         <SortableContext
-          items={questions.map((q) => q.id)}
+          items={ordered.map((it) =>
+            it.kind === "section" ? `s:${it.section.id}` : `q:${it.question.id}`
+          )}
           strategy={verticalListSortingStrategy}
         >
           <div className="flex-1 space-y-3 min-w-0">
@@ -343,26 +412,34 @@ export function FormsEditor({
               </div>
             )}
 
-            {ordered.map((item) =>
-              item.kind === "section" ? (
-                <SectionCard
-                  key={item.section.id}
-                  section={item.section}
-                  onChange={(patch) => patchSection(item.section.id, patch)}
-                  onDelete={() => deleteSection(item.section.id)}
-                />
-              ) : (
-                <SortableQuestionCard
-                  key={item.question.id}
-                  question={item.question}
-                  selected={selectedId === item.question.id}
-                  onSelect={() => setSelectedId(item.question.id)}
-                  onChange={(patch) => patchQuestion(item.question.id, patch)}
-                  onDuplicate={() => duplicateQuestion(item.question)}
-                  onDelete={() => deleteQuestion(item.question.id)}
-                />
-              )
-            )}
+            {ordered.map((item) => (
+              <div key={item.kind === "section" ? `s:${item.section.id}` : `q:${item.question.id}`}>
+                {item.kind === "section" ? (
+                  <SortableSectionCard
+                    section={item.section}
+                    onChange={(patch) => patchSection(item.section.id, patch)}
+                    onDelete={() => deleteSection(item.section.id)}
+                  />
+                ) : (
+                  <SortableQuestionCard
+                    question={item.question}
+                    selected={selectedId === item.question.id}
+                    onSelect={() => setSelectedId(item.question.id)}
+                    onChange={(patch) => patchQuestion(item.question.id, patch)}
+                    onDuplicate={() => duplicateQuestion(item.question)}
+                    onDelete={() => deleteQuestion(item.question.id)}
+                  />
+                )}
+                {/* Inline insert bar — appears immediately under the selected card */}
+                {item.kind === "question" && selectedId === item.question.id && (
+                  <InlineInsertBar
+                    onAddQuestion={(t) => addQuestion(t)}
+                    onAddSection={addSection}
+                    onBulk={() => setBulkOpen(true)}
+                  />
+                )}
+              </div>
+            ))}
           </div>
         </SortableContext>
       </DndContext>
@@ -384,6 +461,8 @@ export function FormsEditor({
         open={bulkOpen}
         onClose={() => setBulkOpen(false)}
         onSubmit={onBulkPaste}
+        onImportFromExam={onImportFromExam}
+        currentExamId={examId}
       />
     </div>
   );
@@ -400,7 +479,7 @@ function SortableQuestionCard(props: {
   onDelete: () => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
-    useSortable({ id: props.question.id });
+    useSortable({ id: `q:${props.question.id}` });
 
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
@@ -414,6 +493,104 @@ function SortableQuestionCard(props: {
         {...props}
         dragHandleProps={{ ...attributes, ...listeners }}
       />
+    </div>
+  );
+}
+
+function SortableSectionCard(props: {
+  section: EditorSection;
+  onChange: (patch: Partial<EditorSection>) => void;
+  onDelete: () => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id: `s:${props.section.id}` });
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+  return (
+    <div ref={setNodeRef} style={style}>
+      <SectionCard {...props} dragHandleProps={{ ...attributes, ...listeners }} />
+    </div>
+  );
+}
+
+// ---- InlineInsertBar — appears below the selected question card ----
+
+function InlineInsertBar({
+  onAddQuestion,
+  onAddSection,
+  onBulk,
+}: {
+  onAddQuestion: (t: QType) => void;
+  onAddSection: () => void;
+  onBulk: () => void;
+}) {
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!pickerOpen) return;
+    const onDoc = (e: MouseEvent) => {
+      if (!ref.current?.contains(e.target as Node)) setPickerOpen(false);
+    };
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, [pickerOpen]);
+
+  return (
+    <div
+      ref={ref}
+      className="relative mt-2 mb-1 flex items-center justify-center gap-1.5 animate-in"
+    >
+      <div className="flex items-center gap-1 rounded-full glass px-1.5 py-1 shadow-[0_4px_12px_-4px_rgba(15,23,42,0.08)]">
+        <button
+          type="button"
+          onClick={() => setPickerOpen((o) => !o)}
+          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium text-[var(--fg)] hover:bg-[var(--bg-muted)]"
+        >
+          <Plus className="h-3.5 w-3.5 text-[var(--primary)]" />
+          Question
+        </button>
+        <span className="text-[var(--fg-subtle)]">·</span>
+        <button
+          type="button"
+          onClick={onAddSection}
+          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium text-[var(--fg)] hover:bg-[var(--bg-muted)]"
+        >
+          <SplitSquareVertical className="h-3.5 w-3.5 text-[#5b21b6]" />
+          Section
+        </button>
+        <span className="text-[var(--fg-subtle)]">·</span>
+        <button
+          type="button"
+          onClick={onBulk}
+          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium text-[var(--fg)] hover:bg-[var(--bg-muted)]"
+        >
+          <ClipboardPaste className="h-3.5 w-3.5 text-[#2563eb]" />
+          Import
+        </button>
+      </div>
+
+      {pickerOpen && (
+        <div className="absolute top-full mt-2 w-56 rounded-2xl glass overflow-hidden z-30">
+          {(Object.entries(TYPE_META) as [QType, (typeof TYPE_META)[QType]][])
+            .map(([t, m]) => (
+              <button
+                key={t}
+                onClick={() => {
+                  onAddQuestion(t);
+                  setPickerOpen(false);
+                }}
+                className="w-full text-left px-3 py-2 flex items-center gap-2 text-sm hover:bg-white/40 dark:hover:bg-white/5"
+              >
+                <m.icon className="h-4 w-4" style={{ color: m.color }} />
+                {m.label}
+              </button>
+            ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -1048,14 +1225,23 @@ function SectionCard({
   section,
   onChange,
   onDelete,
+  dragHandleProps,
 }: {
   section: EditorSection;
   onChange: (patch: Partial<EditorSection>) => void;
   onDelete: () => void;
+  dragHandleProps?: React.HTMLAttributes<HTMLDivElement>;
 }) {
   return (
     <div className="rounded-2xl border-l-4 border-l-[#a78bfa] border-y border-r border-[var(--border)] bg-gradient-to-br from-white/80 to-[#ede9fe]/40 dark:from-white/5 dark:to-[#2e1065]/30 backdrop-blur-sm overflow-hidden">
-      <div className="p-5">
+      {/* Drag handle row */}
+      <div
+        {...dragHandleProps}
+        className="flex items-center justify-center pt-1.5 pb-0.5 cursor-grab active:cursor-grabbing text-[var(--fg-subtle)] hover:text-[var(--fg-muted)]"
+      >
+        <GripVertical className="h-4 w-4 rotate-90" />
+      </div>
+      <div className="px-5 pb-5">
         <div className="flex items-center gap-2 mb-2">
           <SplitSquareVertical className="h-4 w-4 text-[#5b21b6]" />
           <span className="text-xs uppercase tracking-wider font-semibold text-[#5b21b6]">
@@ -1273,39 +1459,104 @@ function ToolbarButton({
 
 // ---- bulk paste modal ----
 
+type ExamSummary = {
+  id: string;
+  title: string;
+  code: string;
+  status: string;
+  questionCount: number;
+};
+
 function BulkPasteModal({
   open,
   onClose,
   onSubmit,
+  onImportFromExam,
+  currentExamId,
 }: {
   open: boolean;
   onClose: () => void;
   onSubmit: (text: string) => void;
+  onImportFromExam: (
+    sourceExamId: string,
+    includeSections: boolean
+  ) => Promise<void>;
+  currentExamId: string;
 }) {
+  const [tab, setTab] = useState<"paste" | "fromExam">("paste");
   const [text, setText] = useState("");
+  const [exams, setExams] = useState<ExamSummary[] | null>(null);
+  const [importing, setImporting] = useState<string | null>(null);
+  const [includeSections, setIncludeSections] = useState(true);
+
+  useEffect(() => {
+    if (!open || tab !== "fromExam" || exams !== null) return;
+    void fetch("/api/exams")
+      .then((r) => (r.ok ? r.json() : { exams: [] }))
+      .then((d) =>
+        setExams(
+          (d.exams as ExamSummary[]).filter((e) => e.id !== currentExamId)
+        )
+      );
+  }, [open, tab, exams, currentExamId]);
+
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#020617]/60 backdrop-blur-sm">
-      <div className="max-w-xl w-full glass rounded-3xl p-6">
-        <div className="flex items-center justify-between mb-3">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#020617]/60 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <div
+        className="max-w-xl w-full glass rounded-3xl p-6"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold text-[var(--fg)]">
-            Bulk paste questions
+            Import questions
           </h3>
           <button onClick={onClose} className="text-[var(--fg-muted)]">
             <X className="h-5 w-5" />
           </button>
         </div>
-        <p className="text-sm text-[var(--fg-muted)] mb-3">
-          Paste your questions below — one per blank-line block. Mark correct
-          MCQ answers with <code>*</code>. Format examples are shown when the
-          box is empty.
-        </p>
-        <Textarea
-          autoFocus
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          rows={10}
-          placeholder={`What is 2+2?
+
+        {/* Tab bar */}
+        <div className="flex gap-1 mb-4 p-1 bg-[var(--bg-muted)] rounded-xl">
+          <button
+            type="button"
+            onClick={() => setTab("paste")}
+            className={`flex-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+              tab === "paste"
+                ? "bg-white text-[var(--fg)] shadow-sm dark:bg-white/10"
+                : "text-[var(--fg-muted)]"
+            }`}
+          >
+            Paste text
+          </button>
+          <button
+            type="button"
+            onClick={() => setTab("fromExam")}
+            className={`flex-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+              tab === "fromExam"
+                ? "bg-white text-[var(--fg)] shadow-sm dark:bg-white/10"
+                : "text-[var(--fg-muted)]"
+            }`}
+          >
+            From another exam
+          </button>
+        </div>
+
+        {tab === "paste" ? (
+          <>
+            <p className="text-sm text-[var(--fg-muted)] mb-3">
+              Paste your questions below — one per blank-line block. Mark
+              correct MCQ answers with <code>*</code>.
+            </p>
+            <Textarea
+              autoFocus
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              rows={10}
+              placeholder={`What is 2+2?
 A) 3
 * B) 4
 C) 5
@@ -1315,19 +1566,75 @@ T/F: The Earth is round.
 Essay: Discuss the causes of WWI.
 
 Photosynthesis is the process by which...?`}
-        />
-        <div className="mt-4 flex justify-end gap-2">
-          <Button variant="ghost" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button
-            variant="primary"
-            disabled={!text.trim()}
-            onClick={() => onSubmit(text)}
-          >
-            Import
-          </Button>
-        </div>
+            />
+            <div className="mt-4 flex justify-end gap-2">
+              <Button variant="ghost" onClick={onClose}>
+                Cancel
+              </Button>
+              <Button
+                variant="primary"
+                disabled={!text.trim()}
+                onClick={() => onSubmit(text)}
+              >
+                Import
+              </Button>
+            </div>
+          </>
+        ) : (
+          <>
+            <p className="text-sm text-[var(--fg-muted)] mb-3">
+              Pick any of your previous exams to copy its questions into this
+              one. Existing questions stay; the copied ones are appended.
+            </p>
+            <label className="flex items-center gap-2 text-sm text-[var(--fg-muted)] mb-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={includeSections}
+                onChange={(e) => setIncludeSections(e.target.checked)}
+                className="h-4 w-4 accent-[var(--primary)]"
+              />
+              Also copy section structure
+            </label>
+            <div className="max-h-72 overflow-y-auto space-y-1 -mx-1 px-1">
+              {exams === null ? (
+                <div className="text-sm text-[var(--fg-muted)] py-6 text-center">
+                  Loading your exams…
+                </div>
+              ) : exams.length === 0 ? (
+                <div className="text-sm text-[var(--fg-muted)] py-6 text-center">
+                  You don&apos;t have any other exams yet.
+                </div>
+              ) : (
+                exams.map((e) => (
+                  <button
+                    key={e.id}
+                    onClick={async () => {
+                      setImporting(e.id);
+                      await onImportFromExam(e.id, includeSections);
+                      setImporting(null);
+                    }}
+                    disabled={importing !== null || e.questionCount === 0}
+                    className="w-full flex items-center justify-between gap-3 p-3 rounded-xl bg-white/60 dark:bg-white/5 hover:bg-white border border-[var(--border)] hover:border-[var(--primary)] disabled:opacity-50 disabled:cursor-not-allowed text-left"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="text-sm font-medium text-[var(--fg)] truncate">
+                        {e.title}
+                      </div>
+                      <div className="text-xs text-[var(--fg-muted)] mt-0.5">
+                        {e.questionCount} question
+                        {e.questionCount === 1 ? "" : "s"} ·{" "}
+                        <code className="font-mono">{e.code}</code> · {e.status}
+                      </div>
+                    </div>
+                    <span className="text-xs font-medium text-[var(--primary)]">
+                      {importing === e.id ? "Importing…" : "Import →"}
+                    </span>
+                  </button>
+                ))
+              )}
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

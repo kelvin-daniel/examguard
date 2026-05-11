@@ -10,6 +10,34 @@ const schema = z.object({
   durationMinutes: z.number().int().min(1).max(600).default(60),
 });
 
+export async function GET() {
+  const user = await requireUser().catch(() => null);
+  if (!user)
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const exams = await prisma.exam.findMany({
+    where: { ownerId: user.id },
+    orderBy: { updatedAt: "desc" },
+    select: {
+      id: true,
+      title: true,
+      code: true,
+      status: true,
+      updatedAt: true,
+      _count: { select: { questions: true } },
+    },
+  });
+  return NextResponse.json({
+    exams: exams.map((e) => ({
+      id: e.id,
+      title: e.title,
+      code: e.code,
+      status: e.status,
+      updatedAt: e.updatedAt.toISOString(),
+      questionCount: e._count.questions,
+    })),
+  });
+}
+
 export async function POST(req: Request) {
   const user = await requireUser().catch(() => null);
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
