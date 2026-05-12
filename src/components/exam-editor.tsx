@@ -31,6 +31,7 @@ type ExamShape = {
   shuffleOptions: boolean;
   showResults: boolean;
   passingScore: number;
+  passingScoreMode: "percentage" | "points";
   startAt: string | null;
   endAt: string | null;
   status: string;
@@ -86,6 +87,7 @@ export function ExamEditor({
         shuffleOptions: e.shuffleOptions,
         showResults: e.showResults,
         passingScore: e.passingScore,
+        passingScoreMode: e.passingScoreMode,
         startAt: e.startAt,
         endAt: e.endAt,
         requireFullscreen: e.requireFullscreen,
@@ -157,10 +159,6 @@ export function ExamEditor({
           ? `Students can join with code ${e.code}.`
           : undefined,
     });
-  }
-
-  function openPreview() {
-    window.open(`/dashboard/exams/${e.id}/preview`, "_blank");
   }
 
   function copyCode() {
@@ -248,8 +246,14 @@ export function ExamEditor({
               ? "Schedule"
               : "Go live now"}
           </Button>
-          <Button variant="subtle" onClick={openPreview}>
-            <Eye className="h-4 w-4" /> Preview
+          <Button asChild variant="subtle">
+            <a
+              href={`/dashboard/exams/${e.id}/preview`}
+              target="_blank"
+              rel="noreferrer"
+            >
+              <Eye className="h-4 w-4" /> Preview
+            </a>
           </Button>
           <Button asChild variant="subtle">
             <Link href={`/dashboard/exams/${e.id}/monitor`}>
@@ -328,16 +332,37 @@ export function ExamEditor({
               />
             </div>
             <div className="space-y-1.5">
-              <Label>Passing score (%)</Label>
-              <Input
-                type="number"
-                min={0}
-                max={100}
-                value={e.passingScore}
-                onChange={(ev) =>
-                  setE((s) => ({ ...s, passingScore: Number(ev.target.value) }))
-                }
-              />
+              <Label>Passing score</Label>
+              <div className="flex items-stretch rounded-xl border border-[var(--border-strong)] bg-white dark:bg-white/5 overflow-hidden focus-within:border-[var(--primary)] focus-within:ring-2 focus-within:ring-[var(--primary)]/30">
+                <Input
+                  type="number"
+                  min={0}
+                  max={e.passingScoreMode === "percentage" ? 100 : 10000}
+                  value={e.passingScore}
+                  onChange={(ev) =>
+                    setE((s) => ({
+                      ...s,
+                      passingScore: Number(ev.target.value),
+                    }))
+                  }
+                  className="flex-1 border-0 rounded-none focus-visible:ring-0 focus-visible:border-0"
+                />
+                <select
+                  value={e.passingScoreMode}
+                  onChange={(ev) =>
+                    setE((s) => ({
+                      ...s,
+                      passingScoreMode: ev.target.value as
+                        | "percentage"
+                        | "points",
+                    }))
+                  }
+                  className="bg-[var(--bg-muted)] px-3 text-sm text-[var(--fg-muted)] border-l border-[var(--border)] focus:outline-none"
+                >
+                  <option value="percentage">%</option>
+                  <option value="points">points</option>
+                </select>
+              </div>
             </div>
             <div className="space-y-1.5">
               <Label>Start at</Label>

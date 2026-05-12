@@ -220,6 +220,15 @@ export function QuestionInput({
         />
       );
 
+    case "passage":
+      // Passage has no input — the prompt/description above this is the
+      // actual reading material. Return a small spacer so layout stays clean.
+      return (
+        <div className="text-sm text-[var(--fg-muted)] italic">
+          Read the passage above and answer the questions that follow.
+        </div>
+      );
+
     default:
       return (
         <div className="text-sm text-[var(--fg-muted)] italic">

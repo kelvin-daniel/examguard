@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -365,14 +364,13 @@ function ReviewModal({
         <div className="p-5">
           {violation.evidence ? (
             <div className="rounded-2xl overflow-hidden border border-[var(--border)] bg-[var(--bg-muted)]">
-              {/* Evidence is a base64 data URL */}
-              <Image
+              {/* Evidence can be a data URL (base64) or an https URL (R2) —
+                  use plain <img> so both work without next/image quirks. */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
                 src={violation.evidence}
                 alt="Violation evidence screenshot"
-                width={800}
-                height={500}
-                unoptimized
-                className="w-full h-auto"
+                className="w-full h-auto max-h-[60vh] object-contain"
               />
             </div>
           ) : (

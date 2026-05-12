@@ -14,6 +14,7 @@ const TYPES = [
   "linearscale",
   "date",
   "time",
+  "passage",
 ] as const;
 
 const questionSchema = z.object({

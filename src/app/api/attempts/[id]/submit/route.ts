@@ -25,6 +25,8 @@ export async function POST(
   const answerUpdates: { id: string; isCorrect: boolean; pointsEarned: number }[] = [];
 
   for (const q of attempt.exam.questions) {
+    // Passages are read-only context, never count toward the total
+    if (q.type === "passage") continue;
     maxScore += q.points;
     const a = attempt.answers.find((x) => x.questionId === q.id);
     if (!a) continue;

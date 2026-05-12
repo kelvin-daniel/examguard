@@ -169,13 +169,44 @@ export function ExamRunner({
     [answers]
   );
 
+  /**
+   * Translate a response based on the *displayed* (shuffled) options into one
+   * keyed by the *original* option index, so the server-side grader works
+   * regardless of per-attempt shuffle.
+   */
+  function unshuffleResponse(q: RunnerQuestion, displayed: string): string {
+    if (!q.optionMap || displayed === "") return displayed;
+    if (q.type === "checkbox") {
+      // comma-separated list of shuffled indices
+      return displayed
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean)
+        .map((i) => {
+          const idx = Number(i);
+          return String(q.optionMap![idx] ?? idx);
+        })
+        .sort((a, b) => Number(a) - Number(b))
+        .join(",");
+    }
+    if (q.type === "mcq" || q.type === "dropdown") {
+      const idx = Number(displayed);
+      return String(q.optionMap[idx] ?? idx);
+    }
+    return displayed;
+  }
+
   async function saveAnswer(qid: string, response: string) {
+    const q = questions.find((x) => x.id === qid);
+    // Keep the displayed (shuffled-index) form in local state so the UI
+    // doesn't flicker, but send the original-index form to the server.
     setAnswers((a) => ({ ...a, [qid]: response }));
+    const persisted = q ? unshuffleResponse(q, response) : response;
     try {
       await fetch(`/api/attempts/${attemptId}/answer`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ questionId: qid, response }),
+        body: JSON.stringify({ questionId: qid, response: persisted }),
       });
     } catch {
       // queued for retry implicitly via React state

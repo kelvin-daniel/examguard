@@ -10,7 +10,8 @@ const patchSchema = z.object({
   shuffleQuestions: z.boolean().optional(),
   shuffleOptions: z.boolean().optional(),
   showResults: z.boolean().optional(),
-  passingScore: z.number().int().min(0).max(100).optional(),
+  passingScore: z.number().int().min(0).max(10000).optional(),
+  passingScoreMode: z.enum(["percentage", "points"]).optional(),
   startAt: z.string().datetime().nullable().optional(),
   endAt: z.string().datetime().nullable().optional(),
   status: z.enum(["draft", "scheduled", "live", "ended"]).optional(),
@@ -101,6 +102,13 @@ function validatePublishable(questions: QuestionRow[]): string[] {
   for (const q of questions) {
     const label = `Q${q.order + 1}`;
     const prompt = q.prompt?.trim();
+    // Passages just need a title — they're read-only context, no grading
+    if (q.type === "passage") {
+      if (!prompt || prompt === "Passage") {
+        issues.push(`${label} (passage) has no title.`);
+      }
+      continue;
+    }
     if (!prompt || prompt === "Untitled question") {
       issues.push(`${label} has no prompt.`);
     }

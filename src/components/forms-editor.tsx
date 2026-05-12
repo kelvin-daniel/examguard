@@ -23,6 +23,7 @@ import { useToast } from "@/components/ui/toast";
 import { useConfirm } from "@/components/ui/confirm";
 import {
   AlignLeft,
+  BookOpen,
   Calendar as CalendarIcon,
   CheckSquare,
   ChevronDown,
@@ -53,7 +54,8 @@ export type QType =
   | "dropdown"
   | "linearscale"
   | "date"
-  | "time";
+  | "time"
+  | "passage";
 
 export type EditorQuestion = {
   id: string;
@@ -91,6 +93,7 @@ const TYPE_META: Record<
   linearscale: { label: "Linear scale", icon: Sliders, color: "#5b21b6" },
   date: { label: "Date", icon: CalendarIcon, color: "#047857" },
   time: { label: "Time", icon: ClockIcon, color: "#92400e" },
+  passage: { label: "Reading passage", icon: BookOpen, color: "#0ea5e9" },
 };
 
 // ---- main editor ----
@@ -261,9 +264,9 @@ export function FormsEditor({
     }
     const base: Record<string, unknown> = {
       type,
-      prompt: "Untitled question",
-      points: 1,
-      required: true,
+      prompt: type === "passage" ? "Passage" : "Untitled question",
+      points: type === "passage" ? 0 : 1,
+      required: type !== "passage",
       sectionId,
     };
     if (type === "mcq" || type === "checkbox" || type === "dropdown") {
@@ -276,6 +279,8 @@ export function FormsEditor({
       base.config = { min: 1, max: 5, minLabel: "", maxLabel: "" };
     } else if (type === "date") {
       base.config = { includeTime: false };
+    } else if (type === "passage") {
+      base.description = "Write the passage text here.";
     }
     const res = await fetch(`/api/exams/${examId}/questions`, {
       method: "POST",
@@ -1087,6 +1092,13 @@ function TypeSpecificEditor({
         <p className="text-xs text-[var(--fg-muted)] italic">
           {question.type === "essay" ? "Essay" : "Short-answer"} questions are
           graded manually.
+        </p>
+      );
+    case "passage":
+      return (
+        <p className="text-xs text-[var(--fg-muted)] italic">
+          Passages are read-only context for nearby questions. Edit the
+          passage text in the description field above.
         </p>
       );
     default:

@@ -51,6 +51,7 @@ model Exam {
   shuffleOptions   Boolean    @default(true)
   showResults      Boolean    @default(false)
   passingScore     Int        @default(50)
+  passingScoreMode String     @default("percentage") // percentage | points
   startAt          DateTime?
   endAt            DateTime?
   status           String     @default("draft")

@@ -1,6 +1,5 @@
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { Badge } from "@/components/ui/badge";
@@ -87,12 +86,10 @@ export default async function AttemptDetailPage({
                 className="glass rounded-2xl overflow-hidden"
               >
                 {v.evidence ? (
-                  <Image
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
                     src={v.evidence}
                     alt="Evidence screenshot"
-                    width={400}
-                    height={225}
-                    unoptimized
                     className="w-full aspect-video object-cover bg-[var(--bg-muted)]"
                   />
                 ) : (

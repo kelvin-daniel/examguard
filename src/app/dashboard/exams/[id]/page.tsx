@@ -56,6 +56,7 @@ export default async function ExamEditPage({
         shuffleOptions: exam.shuffleOptions,
         showResults: exam.showResults,
         passingScore: exam.passingScore,
+        passingScoreMode: exam.passingScoreMode as "percentage" | "points",
         startAt: exam.startAt?.toISOString() ?? null,
         endAt: exam.endAt?.toISOString() ?? null,
         status: exam.status,
