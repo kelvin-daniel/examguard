@@ -4,6 +4,7 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useRef,
   useState,
 } from "react";
@@ -50,6 +51,20 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
     resolverRef.current?.(value);
     resolverRef.current = null;
   }
+
+  // Esc to cancel
+  useEffect(() => {
+    if (!open) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        close(false);
+      }
+    }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
 
   return (
     <ConfirmContext.Provider value={{ confirm }}>

@@ -50,7 +50,12 @@ export async function POST(
   let currentSectionId: string | null = null;
   let sectionOrder = 0;
   let questionOrder = 0;
-  const ops: ReturnType<typeof prisma.section.update>[] = [];
+  // Mixed update operations — section and question updates have different
+  // client types, so we widen to a common Promise-like array.
+  const ops: Array<ReturnType<
+    | typeof prisma.section.update
+    | typeof prisma.question.update
+  >> = [];
   for (const item of items) {
     if (item.startsWith("s:")) {
       const sid = item.slice(2);

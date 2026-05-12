@@ -42,6 +42,31 @@ export async function PATCH(
   if (!exam || exam.ownerId !== user.id) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
+
+  // Block publish if the exam has structural issues that would silently
+  // break grading (e.g. MCQ with no correct option marked).
+  if (
+    parsed.data.status === "live" ||
+    parsed.data.status === "scheduled"
+  ) {
+    const questions = await prisma.question.findMany({
+      where: { examId: id },
+      orderBy: { order: "asc" },
+    });
+    const issues = validatePublishable(questions);
+    if (issues.length > 0) {
+      return NextResponse.json(
+        {
+          error: `Can't publish — ${issues.length} question${
+            issues.length === 1 ? "" : "s"
+          } need${issues.length === 1 ? "s" : ""} attention.`,
+          issues,
+        },
+        { status: 400 }
+      );
+    }
+  }
+
   const updated = await prisma.exam.update({
     where: { id },
     data: {
@@ -51,6 +76,74 @@ export async function PATCH(
     },
   });
   return NextResponse.json({ exam: updated });
+}
+
+type QuestionRow = {
+  id: string;
+  order: number;
+  type: string;
+  prompt: string;
+  options: string | null;
+  correct: string | null;
+};
+
+/**
+ * Return human-readable problems found in the exam's questions. Empty array
+ * means it's safe to publish.
+ */
+function validatePublishable(questions: QuestionRow[]): string[] {
+  const issues: string[] = [];
+  if (questions.length === 0) {
+    issues.push("This exam has no questions yet.");
+    return issues;
+  }
+
+  for (const q of questions) {
+    const label = `Q${q.order + 1}`;
+    const prompt = q.prompt?.trim();
+    if (!prompt || prompt === "Untitled question") {
+      issues.push(`${label} has no prompt.`);
+    }
+
+    if (q.type === "mcq" || q.type === "dropdown") {
+      const options = q.options ? (JSON.parse(q.options) as string[]) : [];
+      if (options.length < 2) {
+        issues.push(`${label} needs at least 2 options.`);
+      } else if (options.some((o) => !o.trim())) {
+        issues.push(`${label} has an empty option.`);
+      }
+      const correct = q.correct ? JSON.parse(q.correct) : null;
+      const idx = correct != null ? Number(correct) : -1;
+      if (idx < 0 || idx >= options.length) {
+        issues.push(`${label} has no correct answer marked.`);
+      }
+    } else if (q.type === "checkbox") {
+      const options = q.options ? (JSON.parse(q.options) as string[]) : [];
+      if (options.length < 2) {
+        issues.push(`${label} needs at least 2 options.`);
+      } else if (options.some((o) => !o.trim())) {
+        issues.push(`${label} has an empty option.`);
+      }
+      const correct = q.correct ? JSON.parse(q.correct) : null;
+      if (!Array.isArray(correct) || correct.length === 0) {
+        issues.push(`${label} has no correct options marked.`);
+      }
+    } else if (q.type === "truefalse") {
+      const correct = q.correct ? JSON.parse(q.correct) : null;
+      if (correct == null) {
+        issues.push(`${label} hasn't picked True or False as the answer.`);
+      }
+    } else if (q.type === "fillblank") {
+      const correct = q.correct ? JSON.parse(q.correct) : "";
+      if (!String(correct).trim()) {
+        issues.push(`${label} has no acceptable answer set.`);
+      }
+    }
+    // short/essay are manually graded → no validation needed
+    // date/time/linearscale are not auto-graded → no validation needed
+  }
+
+  return issues;
 }
 
 export async function DELETE(

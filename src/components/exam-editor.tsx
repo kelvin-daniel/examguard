@@ -124,22 +124,39 @@ export function ExamEditor({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status: e.startAt ? "scheduled" : "live" }),
     });
-    if (res.ok) {
-      const { exam } = await res.json();
-      setE((s) => ({ ...s, status: exam.status }));
-      router.refresh();
+    if (!res.ok) {
+      const data = (await res.json().catch(() => ({}))) as {
+        error?: string;
+        issues?: string[];
+      };
+      // First 3 issues fit comfortably in a toast description; tell the
+      // teacher there are more if we're truncating.
+      const issues = data.issues ?? [];
+      const preview = issues.slice(0, 3).join(" · ");
+      const more =
+        issues.length > 3 ? ` (+${issues.length - 3} more)` : "";
       toast({
-        kind: "success",
-        title:
-          exam.status === "live"
-            ? "Exam is live"
-            : "Exam scheduled",
-        description:
-          exam.status === "live"
-            ? `Students can join with code ${e.code}.`
-            : undefined,
+        kind: "warning",
+        title: data.error ?? "Couldn't publish the exam",
+        description: issues.length
+          ? `${preview}${more}`
+          : "Check your questions and try again.",
+        duration: 8000,
       });
+      return;
     }
+    const { exam } = await res.json();
+    setE((s) => ({ ...s, status: exam.status }));
+    router.refresh();
+    toast({
+      kind: "success",
+      title:
+        exam.status === "live" ? "Exam is live" : "Exam scheduled",
+      description:
+        exam.status === "live"
+          ? `Students can join with code ${e.code}.`
+          : undefined,
+    });
   }
 
   function openPreview() {
