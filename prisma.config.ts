@@ -2,13 +2,30 @@ import "dotenv/config";
 import { defineConfig } from "prisma/config";
 import { PrismaLibSql } from "@prisma/adapter-libsql";
 
-// The CLI accepts an `adapter` factory at runtime (needed for libsql migrate
-// + introspect), but the public type for `PrismaConfig` in 7.8 doesn't expose
-// it yet. Cast through `any` until that ships.
+/**
+ * Prisma config — handles both local SQLite and remote Turso seamlessly.
+ *
+ * The CLI's URL parser doesn't speak `libsql://` (the schema.prisma
+ * provider is `sqlite`), so the `datasource.url` we hand it has to be
+ * a `file:` URL even when we're targeting Turso. The actual connection
+ * goes through the libsql adapter, which reads DATABASE_URL +
+ * TURSO_AUTH_TOKEN directly.
+ *
+ * In practice: set DATABASE_URL=libsql://... + TURSO_AUTH_TOKEN=... for
+ * remote, or DATABASE_URL=file:./dev.db for local. We strip the libsql
+ * scheme before handing to the URL parser.
+ */
+function localPlaceholderUrl(): string {
+  const url = process.env.DATABASE_URL ?? "file:./dev.db";
+  // The libsql adapter takes the real URL; the parser just needs *any*
+  // valid file: URL to pass scheme validation.
+  return url.startsWith("libsql://") ? "file:./dev.db" : url;
+}
+
 const config: Parameters<typeof defineConfig>[0] = {
   schema: "prisma/schema.prisma",
   datasource: {
-    url: process.env.DATABASE_URL ?? "file:./dev.db",
+    url: localPlaceholderUrl(),
   },
   migrations: {
     path: "prisma/migrations",
