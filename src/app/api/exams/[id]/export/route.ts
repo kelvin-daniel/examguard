@@ -41,6 +41,11 @@ export async function GET(
 
   const lines: string[] = [];
 
+  // Passages are reading material with no answers — skip their columns
+  const gradableQuestions = exam.questions.filter(
+    (q) => q.type !== "passage"
+  );
+
   // Header — fixed columns + one column per question
   const fixedCols = [
     "Student",
@@ -53,7 +58,7 @@ export async function GET(
     "Submitted",
     "Violations",
   ];
-  const qHeaders = exam.questions.map(
+  const qHeaders = gradableQuestions.map(
     (q, i) => `Q${i + 1}: ${q.prompt.slice(0, 60)}`
   );
   lines.push(row([...fixedCols, ...qHeaders]));
@@ -77,7 +82,7 @@ export async function GET(
     const answersByQuestion = new Map(
       a.answers.map((ans) => [ans.questionId, ans])
     );
-    const qCols = exam.questions.map((q) => {
+    const qCols = gradableQuestions.map((q) => {
       const ans = answersByQuestion.get(q.id);
       if (!ans) return "";
       const options = q.options ? (JSON.parse(q.options) as string[]) : null;

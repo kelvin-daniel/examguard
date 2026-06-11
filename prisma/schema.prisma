@@ -120,6 +120,8 @@ model Attempt {
   questionOrder String
   status        String      @default("in_progress") // in_progress | paused | submitted | terminated
   pausedReason  String?
+  pausedAt      DateTime? // set while paused awaiting teacher review
+  pausedMs      Int         @default(0) // accumulated pause time; extends the deadline
   ipAddress     String?
   userAgent     String?
   answers       Answer[]

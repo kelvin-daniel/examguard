@@ -41,6 +41,7 @@ import {
   X,
 } from "lucide-react";
 import { QuestionInput } from "./question-input";
+import { compressImage } from "@/lib/compress-image";
 
 // ---- types ----
 
@@ -1832,9 +1833,16 @@ function ImageUploader({
       if (!file) return;
       setErr(null);
       setUploading(true);
-      const fd = new FormData();
-      fd.append("file", file);
       try {
+        // Shrink before upload — keeps us under serverless body limits and
+        // out of multi-MB base64 rows when R2 isn't configured.
+        const compressed = await compressImage(file);
+        const fd = new FormData();
+        const name =
+          compressed === file
+            ? file.name
+            : file.name.replace(/\.\w+$/, "") + ".jpg";
+        fd.append("file", compressed, name);
         const res = await fetch("/api/upload", { method: "POST", body: fd });
         if (!res.ok) {
           const data = await res.json().catch(() => ({}));
@@ -1843,6 +1851,8 @@ function ImageUploader({
         }
         const { url: uploadedUrl } = await res.json();
         onChange(uploadedUrl);
+      } catch {
+        setErr("Upload failed");
       } finally {
         setUploading(false);
       }

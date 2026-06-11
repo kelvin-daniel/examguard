@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { attemptDeadlineMs } from "@/lib/exam-time";
 
 const schema = z.object({
   questionId: z.string(),
@@ -26,9 +27,8 @@ export async function POST(
   if (attempt.status !== "in_progress")
     return NextResponse.json({ error: "Attempt closed" }, { status: 409 });
 
-  // Server-side time enforcement
-  const deadline =
-    attempt.startedAt.getTime() + attempt.exam.durationMinutes * 60_000;
+  // Server-side time enforcement (pause time is credited back)
+  const deadline = attemptDeadlineMs(attempt, attempt.exam.durationMinutes);
   if (Date.now() > deadline) {
     return NextResponse.json({ error: "Time expired" }, { status: 410 });
   }

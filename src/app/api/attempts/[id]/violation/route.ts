@@ -51,13 +51,15 @@ export async function POST(
     },
   });
 
-  // Pause attempt if needed
+  // Pause attempt if needed. pausedAt freezes the exam clock — the deadline
+  // extends by the pause duration once the teacher resolves (see exam-time.ts).
   if (shouldPause && attempt.status === "in_progress") {
     await prisma.attempt.update({
       where: { id },
       data: {
         status: "paused",
         pausedReason: parsed.data.type,
+        pausedAt: new Date(),
       },
     });
   }

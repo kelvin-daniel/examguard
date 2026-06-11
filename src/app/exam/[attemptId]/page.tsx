@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { shuffle } from "@/lib/utils";
+import { attemptDeadlineMs } from "@/lib/exam-time";
 import { ExamRunner } from "@/components/exam-runner";
 import { ExamSubmitted } from "@/components/exam-submitted";
 
@@ -115,7 +116,7 @@ export default async function ExamAttemptPage({
   }
 
   const deadline = new Date(
-    attempt.startedAt.getTime() + attempt.exam.durationMinutes * 60_000
+    attemptDeadlineMs(attempt, attempt.exam.durationMinutes)
   ).toISOString();
 
   return (

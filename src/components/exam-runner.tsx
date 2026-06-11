@@ -53,7 +53,7 @@ export function ExamRunner({
   attemptId,
   examTitle,
   studentName,
-  deadline,
+  deadline: initialDeadline,
   questions,
   initialAnswers,
   initialStatus,
@@ -81,6 +81,12 @@ export function ExamRunner({
   const [pausedReason, setPausedReason] = useState<string | null>(
     initialPausedReason
   );
+  // Deadline is state, not a fixed prop: pause time is credited back to the
+  // clock, so the server hands us a fresh deadline whenever a pause resolves.
+  const [deadline, setDeadline] = useState(initialDeadline);
+  // After the teacher allows continuation, the student must click Resume —
+  // browsers only grant fullscreen from a user gesture, never from a poll.
+  const [needsResume, setNeedsResume] = useState(false);
 
   const enforcementSettings = useMemo<EnforcementSettings>(
     () => ({
@@ -96,7 +102,7 @@ export function ExamRunner({
   const { isFullscreen, enterFullscreen, violations, online } = useAntiCheat({
     attemptId,
     containerRef,
-    enabled: started && !paused,
+    enabled: started && !paused && !needsResume,
     settings: enforcementSettings,
     onPause: (reason) => {
       setPaused(true);
@@ -112,7 +118,7 @@ export function ExamRunner({
     Math.max(0, new Date(deadline).getTime() - Date.now())
   );
   useEffect(() => {
-    if (!started || paused) return;
+    if (!started || paused || needsResume) return;
     const t = setInterval(() => {
       const r = Math.max(0, new Date(deadline).getTime() - Date.now());
       setRemaining(r);
@@ -123,7 +129,7 @@ export function ExamRunner({
     }, 1000);
     return () => clearInterval(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [started, paused, deadline]);
+  }, [started, paused, needsResume, deadline]);
 
   // Poll attempt status while paused — teacher decision unblocks us
   useEffect(() => {
@@ -136,13 +142,22 @@ export function ExamRunner({
         const data = (await res.json()) as {
           status: string;
           pausedReason: string | null;
+          deadline?: string;
         };
         if (!alive) return;
         if (data.status === "in_progress") {
+          // The server credited the pause back — adopt the fresh deadline,
+          // then wait for the student to click Resume (fullscreen needs a
+          // user gesture; calling it from here would be silently rejected).
+          if (data.deadline) {
+            setDeadline(data.deadline);
+            setRemaining(
+              Math.max(0, new Date(data.deadline).getTime() - Date.now())
+            );
+          }
           setPaused(false);
           setPausedReason(null);
-          // Re-enter fullscreen if required
-          if (settings.requireFullscreen) await enterFullscreen();
+          setNeedsResume(true);
         } else if (data.status === "terminated" || data.status === "submitted") {
           router.refresh();
         }
@@ -156,17 +171,33 @@ export function ExamRunner({
       alive = false;
       clearInterval(interval);
     };
-  }, [paused, attemptId, settings.requireFullscreen, enterFullscreen, router]);
+  }, [paused, attemptId, router]);
 
   async function start() {
     if (settings.requireFullscreen) await enterFullscreen();
     setStarted(true);
   }
 
+  async function resume() {
+    // Runs inside a click handler, so the fullscreen request is allowed.
+    if (settings.requireFullscreen) await enterFullscreen();
+    setNeedsResume(false);
+  }
+
   const current = questions[idx];
+  // Passages are reading material, not questions — exclude them from
+  // progress counts so "3 / 10 answered" reflects what's actually gradable.
+  const answerable = useMemo(
+    () => questions.filter((q) => q.type !== "passage"),
+    [questions]
+  );
   const answered = useMemo(
     () => new Set(Object.keys(answers).filter((k) => answers[k] !== "")),
     [answers]
+  );
+  const answeredCount = useMemo(
+    () => answerable.filter((q) => answered.has(q.id)).length,
+    [answerable, answered]
   );
 
   /**
@@ -215,11 +246,18 @@ export function ExamRunner({
 
   async function submit(auto = false) {
     if (!auto) {
-      const remainingUnanswered = questions.length - answered.size;
+      const remainingUnanswered = answerable.length - answeredCount;
+      const requiredUnanswered = answerable.filter(
+        (q) => q.required && !answered.has(q.id)
+      ).length;
       const ok = await confirm({
         title: "Submit your exam?",
         description:
-          remainingUnanswered > 0
+          requiredUnanswered > 0
+            ? `${requiredUnanswered} required question${
+                requiredUnanswered === 1 ? " is" : "s are"
+              } still blank. Once you submit, you can't make changes.`
+            : remainingUnanswered > 0
             ? `You have ${remainingUnanswered} question${
                 remainingUnanswered === 1 ? "" : "s"
               } left blank. Once you submit, you can't make changes.`
@@ -272,6 +310,7 @@ export function ExamRunner({
       {paused && (
         <PausedOverlay reason={pausedReason} examTitle={examTitle} />
       )}
+      {needsResume && <ResumeOverlay onResume={resume} />}
 
       {/* Top bar — fixed-height chrome, doesn't grow */}
       <header className="flex-shrink-0 z-20 glass-soft">
@@ -388,7 +427,7 @@ export function ExamRunner({
         <div className="max-w-3xl mx-auto">
           <div className="flex items-center justify-between mb-1.5">
             <span className="text-xs font-medium text-[var(--fg-muted)]">
-              {answered.size} / {total} answered
+              {answeredCount} / {answerable.length} answered
             </span>
             <span className="text-xs text-[var(--fg-subtle)]">Tap to jump</span>
           </div>
@@ -494,6 +533,29 @@ function StartScreen({
             I understand, start the exam
           </Button>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function ResumeOverlay({ onResume }: { onResume: () => void }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-[#020617]/80 backdrop-blur-sm">
+      <div className="max-w-md w-full text-center glass rounded-3xl p-8">
+        <div className="h-16 w-16 mx-auto rounded-2xl bg-gradient-to-br from-[#34d399] to-[#10b981] flex items-center justify-center mb-6 shadow-[0_8px_24px_-4px_rgba(16,185,129,0.40)]">
+          <ShieldCheck className="h-8 w-8 text-white" />
+        </div>
+        <h2 className="text-2xl font-semibold tracking-tight text-[var(--fg)]">
+          You&apos;re cleared to continue
+        </h2>
+        <p className="mt-2 text-[var(--fg-muted)]">
+          Your teacher reviewed the flag and allowed you to keep going. The
+          time you spent paused has been added back to your clock.
+        </p>
+        <Button onClick={onResume} variant="primary" size="xl" className="mt-6 w-full">
+          <Maximize className="h-5 w-5" />
+          Resume exam
+        </Button>
       </div>
     </div>
   );

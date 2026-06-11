@@ -36,6 +36,12 @@ export async function POST(
     // Don't block on it: we always proceed to clear the DB row regardless.
     void deleteByUrl(violation.evidence);
 
+    // Credit the pause back to the student's clock so they don't lose exam
+    // time waiting on review.
+    const pauseCredit = violation.attempt.pausedAt
+      ? Date.now() - violation.attempt.pausedAt.getTime()
+      : 0;
+
     // Discard evidence to save storage; mark resolved; resume attempt
     await prisma.$transaction([
       prisma.violation.update({
@@ -51,7 +57,12 @@ export async function POST(
         where: { id: violation.attemptId },
         data:
           violation.attempt.status === "paused"
-            ? { status: "in_progress", pausedReason: null }
+            ? {
+                status: "in_progress",
+                pausedReason: null,
+                pausedAt: null,
+                pausedMs: { increment: pauseCredit },
+              }
             : {},
       }),
     ]);
@@ -74,6 +85,7 @@ export async function POST(
         status: "terminated",
         submittedAt: new Date(),
         pausedReason: null,
+        pausedAt: null,
       },
     }),
   ]);
