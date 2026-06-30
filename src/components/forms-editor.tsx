@@ -204,11 +204,17 @@ export function FormsEditor({
     extraSections: EditorSection[] = [],
     extraQuestions: EditorQuestion[] = []
   ) {
-    const newSections = [...sections, ...extraSections];
-    const newQuestions = [...questions, ...extraQuestions];
-    const sectionsById = new Map(newSections.map((s) => [s.id, s]));
-    const questionsById = new Map(newQuestions.map((q) => [q.id, q]));
+    // Look up against the (possibly extended) source lists, but produce BRAND
+    // NEW objects with updated order/section so React + dnd-kit reliably see a
+    // change. Mutating the existing state objects in place looked like "no
+    // change" and the dragged card animated back to its old slot.
+    const sourceSections = [...sections, ...extraSections];
+    const sourceQuestions = [...questions, ...extraQuestions];
+    const sectionsById = new Map(sourceSections.map((s) => [s.id, s]));
+    const questionsById = new Map(sourceQuestions.map((q) => [q.id, q]));
 
+    const nextSections: EditorSection[] = [];
+    const nextQuestions: EditorQuestion[] = [];
     let currentSectionId: string | null = null;
     let sIdx = 0;
     let qIdx = 0;
@@ -216,17 +222,32 @@ export function FormsEditor({
       if (key.startsWith("s:")) {
         const s = sectionsById.get(key.slice(2));
         if (!s) continue;
-        s.order = sIdx++;
+        nextSections.push({ ...s, order: sIdx++ });
         currentSectionId = s.id;
       } else if (key.startsWith("q:")) {
         const q = questionsById.get(key.slice(2));
         if (!q) continue;
-        q.order = qIdx++;
-        q.sectionId = currentSectionId;
+        nextQuestions.push({
+          ...q,
+          order: qIdx++,
+          sectionId: currentSectionId,
+        });
       }
     }
-    setSections([...newSections]);
-    setQuestions([...newQuestions]);
+
+    // Preserve any items not present in `keys` (defensive — keys should be
+    // exhaustive, but never silently drop a card).
+    for (const s of sourceSections) {
+      if (!nextSections.some((x) => x.id === s.id))
+        nextSections.push({ ...s, order: sIdx++ });
+    }
+    for (const q of sourceQuestions) {
+      if (!nextQuestions.some((x) => x.id === q.id))
+        nextQuestions.push({ ...q, order: qIdx++ });
+    }
+
+    setSections(nextSections);
+    setQuestions(nextQuestions);
 
     void fetch(`/api/exams/${examId}/reorder`, {
       method: "POST",
