@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { ExamEditor } from "@/components/exam-editor";
 import type { EditorQuestion, EditorSection, QType } from "@/components/forms-editor";
+import { parseCollectFields } from "@/lib/collect-fields";
 
 export default async function ExamEditPage({
   params,
@@ -70,6 +71,7 @@ export default async function ExamEditPage({
         autoSubmitOnViolations: exam.autoSubmitOnViolations,
         allowCalculator: exam.allowCalculator,
         allowScratchpad: exam.allowScratchpad,
+        collectFields: parseCollectFields(exam.collectFields),
       }}
       initialQuestions={questions}
       initialSections={sections}

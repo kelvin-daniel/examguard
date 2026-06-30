@@ -15,7 +15,7 @@ const patchSchema = z.object({
     .optional()
     .nullable(),
   config: z.record(z.string(), z.unknown()).optional().nullable(),
-  imageUrl: z.string().max(2_000_000).optional().nullable(),
+  imageUrl: z.string().max(3_500_000).optional().nullable(),
   order: z.number().int().min(0).optional(),
   sectionId: z.string().optional().nullable(),
 });

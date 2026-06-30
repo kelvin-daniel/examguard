@@ -29,7 +29,7 @@ const questionSchema = z.object({
     .union([z.string(), z.array(z.string()), z.boolean()])
     .optional(),
   config: z.record(z.string(), z.unknown()).optional(),
-  imageUrl: z.string().max(2_000_000).optional().nullable(),
+  imageUrl: z.string().max(3_500_000).optional().nullable(),
   sectionId: z.string().optional().nullable(),
 });
 

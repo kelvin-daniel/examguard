@@ -13,6 +13,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { ShieldCheck, ArrowRight, Lock } from "lucide-react";
+import type { CollectField } from "@/lib/collect-fields";
 
 type ExamInfo = {
   id: string;
@@ -22,6 +23,7 @@ type ExamInfo = {
   questionCount: number;
   status: string;
   startAt: string | null;
+  collectFields: CollectField[];
 };
 
 export function JoinForm() {
@@ -29,9 +31,15 @@ export function JoinForm() {
   const search = useSearchParams();
   const [code, setCode] = useState((search.get("code") ?? "").toUpperCase());
   const [studentName, setStudentName] = useState("");
+  const [extra, setExtra] = useState<Record<string, string>>({});
   const [info, setInfo] = useState<ExamInfo | null>(null);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+
+  const fields = info?.collectFields ?? [];
+  const missingRequired = fields.some(
+    (f) => f.required && !(extra[f.key] ?? "").trim()
+  );
 
   useEffect(() => {
     if (code.length === 6 && !info) lookup();
@@ -57,7 +65,7 @@ export function JoinForm() {
     const res = await fetch("/api/join", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ code, studentName }),
+      body: JSON.stringify({ code, studentName, studentInfo: extra }),
     });
     if (!res.ok) {
       const { error } = await res.json().catch(() => ({ error: "Could not start" }));
@@ -139,6 +147,51 @@ export function JoinForm() {
               />
             </div>
 
+            {fields.map((f) => (
+              <div key={f.key} className="space-y-1.5">
+                <Label htmlFor={`f_${f.key}`}>
+                  {f.label}
+                  {f.required && <span className="text-[#dc2626] ml-0.5">*</span>}
+                </Label>
+                {f.type === "select" ? (
+                  <select
+                    id={`f_${f.key}`}
+                    required={f.required}
+                    value={extra[f.key] ?? ""}
+                    onChange={(e) =>
+                      setExtra((s) => ({ ...s, [f.key]: e.target.value }))
+                    }
+                    className="flex h-12 w-full rounded-xl border border-[var(--border-strong)] bg-white dark:bg-white/5 px-4 text-base text-[var(--fg)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]/30 focus-visible:border-[var(--primary)]"
+                  >
+                    <option value="">Choose…</option>
+                    {(f.options ?? []).map((o, i) => (
+                      <option key={i} value={o}>
+                        {o}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <Input
+                    id={`f_${f.key}`}
+                    type={
+                      f.type === "email"
+                        ? "email"
+                        : f.type === "number"
+                        ? "number"
+                        : "text"
+                    }
+                    required={f.required}
+                    value={extra[f.key] ?? ""}
+                    onChange={(e) =>
+                      setExtra((s) => ({ ...s, [f.key]: e.target.value }))
+                    }
+                    placeholder={f.label}
+                    autoComplete="off"
+                  />
+                )}
+              </div>
+            ))}
+
             <div className="rounded-xl bg-[#fef3c7] dark:bg-[#451a03] border border-[#fbbf24] dark:border-[#92400e] p-3 text-xs text-[#92400e] dark:text-[#fbbf24] flex gap-2">
               <Lock className="h-4 w-4 flex-shrink-0 mt-0.5" />
               <span>
@@ -159,7 +212,9 @@ export function JoinForm() {
               variant="primary"
               size="lg"
               className="w-full"
-              disabled={loading || code.length !== 6 || !studentName}
+              disabled={
+                loading || code.length !== 6 || !studentName || missingRequired
+              }
             >
               {loading ? "Starting…" : "Start exam"}
               <ArrowRight className="h-4 w-4" />

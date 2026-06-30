@@ -41,7 +41,8 @@ import {
   X,
 } from "lucide-react";
 import { QuestionInput } from "./question-input";
-import { compressImage } from "@/lib/compress-image";
+import { compressImageDetailed } from "@/lib/compress-image";
+import { cn } from "@/lib/utils";
 
 // ---- types ----
 
@@ -943,17 +944,21 @@ function SelectedBody({
 
       {/* Prompt */}
       <Textarea
-        placeholder="Untitled question"
+        autoGrow
+        placeholder={
+          question.type === "passage" ? "Passage title" : "Untitled question"
+        }
         value={question.prompt}
         onChange={(e) => onChange({ prompt: e.target.value })}
-        className="text-base font-medium min-h-0 h-12 resize-none"
+        className="text-base font-medium min-h-0"
         rows={1}
       />
 
-      {/* Optional description */}
+      {/* Optional description (the passage body lives here for passages) */}
       <DescriptionRow
         value={question.description ?? ""}
         onChange={(v) => onChange({ description: v || null })}
+        isPassage={question.type === "passage"}
       />
 
       {/* Type-specific editor */}
@@ -990,12 +995,16 @@ function SelectedBody({
 function DescriptionRow({
   value,
   onChange,
+  isPassage,
 }: {
   value: string;
   onChange: (v: string) => void;
+  isPassage?: boolean;
 }) {
-  const [open, setOpen] = useState(value.length > 0);
-  if (!open && !value) {
+  // A passage's body lives in the description field, so it's always open and
+  // gets a roomier starting height.
+  const [open, setOpen] = useState(isPassage || value.length > 0);
+  if (!isPassage && !open && !value) {
     return (
       <button
         type="button"
@@ -1008,13 +1017,21 @@ function DescriptionRow({
   }
   return (
     <Textarea
-      placeholder="Description (optional helper text)"
+      autoGrow
+      placeholder={
+        isPassage
+          ? "Type or paste the reading passage here…"
+          : "Description (optional helper text)"
+      }
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className="text-sm min-h-0 mt-2 resize-none"
-      rows={2}
+      className={cn(
+        "text-sm min-h-0 mt-2",
+        isPassage && "text-base min-h-[140px]"
+      )}
+      rows={isPassage ? 5 : 2}
       onBlur={() => {
-        if (!value) setOpen(false);
+        if (!isPassage && !value) setOpen(false);
       }}
     />
   );
@@ -1465,10 +1482,11 @@ function SectionCard({
           className="text-lg font-semibold border-0 bg-transparent px-0 focus-visible:ring-0 focus-visible:border-0"
         />
         <Textarea
+          autoGrow
           value={section.description ?? ""}
           placeholder="Section description (optional)"
           onChange={(e) => onChange({ description: e.target.value || null })}
-          className="text-sm border-0 bg-transparent px-0 mt-1 min-h-0 resize-none focus-visible:ring-0 focus-visible:border-0"
+          className="text-sm border-0 bg-transparent px-0 mt-1 min-h-0 focus-visible:ring-0 focus-visible:border-0"
           rows={2}
         />
       </div>
@@ -1827,32 +1845,43 @@ function ImageUploader({
   async function pickFile() {
     const input = document.createElement("input");
     input.type = "file";
-    input.accept = "image/*";
+    input.accept = "image/png,image/jpeg,image/webp,image/gif";
     input.onchange = async () => {
       const file = input.files?.[0];
       if (!file) return;
       setErr(null);
       setUploading(true);
       try {
-        // Shrink before upload — keeps us under serverless body limits and
-        // out of multi-MB base64 rows when R2 isn't configured.
-        const compressed = await compressImage(file);
+        // Shrink to a byte budget before upload — keeps us under serverless
+        // body limits and out of oversized base64 rows when R2 isn't set up.
+        const result = await compressImageDetailed(file);
+        if (!result.ok) {
+          // Most common cause: HEIC/HEIF from an iPhone, which non-Safari
+          // browsers can't decode to a canvas.
+          const isHeic = /\.(heic|heif)$/i.test(file.name);
+          setErr(
+            isHeic
+              ? "HEIC photos aren't supported — export as JPEG and retry."
+              : "That image couldn't be read. Try a PNG or JPEG."
+          );
+          return;
+        }
+        const blob = result.blob;
         const fd = new FormData();
-        const name =
-          compressed === file
-            ? file.name
-            : file.name.replace(/\.\w+$/, "") + ".jpg";
-        fd.append("file", compressed, name);
+        const name = result.changed
+          ? file.name.replace(/\.\w+$/, "") + ".jpg"
+          : file.name;
+        fd.append("file", blob, name);
         const res = await fetch("/api/upload", { method: "POST", body: fd });
         if (!res.ok) {
           const data = await res.json().catch(() => ({}));
-          setErr(data.error ?? "Upload failed");
+          setErr(data.error ?? "Upload failed. Please try again.");
           return;
         }
         const { url: uploadedUrl } = await res.json();
         onChange(uploadedUrl);
       } catch {
-        setErr("Upload failed");
+        setErr("Upload failed. Check your connection and try again.");
       } finally {
         setUploading(false);
       }

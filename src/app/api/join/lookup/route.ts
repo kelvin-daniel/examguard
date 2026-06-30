@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { parseCollectFields } from "@/lib/collect-fields";
 
 export async function GET(req: Request) {
   const url = new URL(req.url);
@@ -22,6 +23,7 @@ export async function GET(req: Request) {
       questionCount: exam._count.questions,
       status: exam.status,
       startAt: exam.startAt?.toISOString() ?? null,
+      collectFields: parseCollectFields(exam.collectFields),
     },
   });
 }

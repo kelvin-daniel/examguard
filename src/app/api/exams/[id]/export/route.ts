@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
+import { parseCollectFields } from "@/lib/collect-fields";
 
 function csvEscape(v: string | number | null | undefined): string {
   if (v === null || v === undefined) return "";
@@ -46,10 +47,14 @@ export async function GET(
     (q) => q.type !== "passage"
   );
 
-  // Header — fixed columns + one column per question
+  // Teacher-configured sign-in fields become their own columns.
+  const collectFields = parseCollectFields(exam.collectFields);
+
+  // Header — fixed columns + collected-info columns + one column per question
   const fixedCols = [
     "Student",
     "Email",
+    ...collectFields.map((f) => f.label),
     "Status",
     "Score",
     "Max",
@@ -68,9 +73,13 @@ export async function GET(
       a.score !== null && a.maxScore !== null && a.maxScore > 0
         ? Math.round((a.score / a.maxScore) * 100)
         : "";
+    const collected = a.studentInfo
+      ? (JSON.parse(a.studentInfo) as Record<string, string>)
+      : {};
     const fixed: (string | number | null)[] = [
       a.studentName,
       a.studentEmail ?? "",
+      ...collectFields.map((f) => collected[f.key] ?? ""),
       a.status,
       a.score ?? "",
       a.maxScore ?? "",

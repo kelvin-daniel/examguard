@@ -3,11 +3,14 @@ import { z } from "zod";
 import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { shuffle } from "@/lib/utils";
+import { parseCollectFields } from "@/lib/collect-fields";
 
 const schema = z.object({
   code: z.string().length(6),
   studentName: z.string().min(1).max(120),
   studentEmail: z.string().email().optional(),
+  // Values for the teacher-configured extra fields, keyed by field.key
+  studentInfo: z.record(z.string(), z.string().max(500)).optional(),
 });
 
 export async function POST(req: Request) {
@@ -43,6 +46,38 @@ export async function POST(req: Request) {
       { status: 409 }
     );
 
+  // Validate the teacher-configured sign-in fields server-side so a crafted
+  // request can't skip required info.
+  const fields = parseCollectFields(exam.collectFields);
+  const info = parsed.data.studentInfo ?? {};
+  for (const f of fields) {
+    const v = (info[f.key] ?? "").trim();
+    if (f.required && !v) {
+      return NextResponse.json(
+        { error: `Please fill in "${f.label}".` },
+        { status: 400 }
+      );
+    }
+    if (v && f.type === "email" && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) {
+      return NextResponse.json(
+        { error: `"${f.label}" must be a valid email.` },
+        { status: 400 }
+      );
+    }
+  }
+  // Keep only known field keys, trimmed.
+  const cleanedInfo: Record<string, string> = {};
+  for (const f of fields) {
+    const v = (info[f.key] ?? "").trim();
+    if (v) cleanedInfo[f.key] = v;
+  }
+  // If an email field was collected, mirror it into studentEmail for quick
+  // display + CSV without parsing the JSON.
+  const emailField = fields.find((f) => f.type === "email");
+  const collectedEmail = emailField
+    ? cleanedInfo[emailField.key]
+    : undefined;
+
   const h = await headers();
   const ua = h.get("user-agent") ?? null;
   const ip =
@@ -58,7 +93,10 @@ export async function POST(req: Request) {
     data: {
       examId: exam.id,
       studentName: parsed.data.studentName,
-      studentEmail: parsed.data.studentEmail ?? null,
+      studentEmail: collectedEmail ?? parsed.data.studentEmail ?? null,
+      studentInfo: Object.keys(cleanedInfo).length
+        ? JSON.stringify(cleanedInfo)
+        : null,
       questionOrder: JSON.stringify(order),
       userAgent: ua,
       ipAddress: ip,

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import html2canvas from "html2canvas";
+import { toJpeg } from "html-to-image";
 
 export type ViolationType =
   | "tab_blur"
@@ -71,15 +71,32 @@ export function useAntiCheat({
   settingsRef.current = settings;
 
   const captureEvidence = useCallback(async (): Promise<string | undefined> => {
-    if (!containerRef.current) return;
+    const node = containerRef.current;
+    if (!node) return;
+    // html-to-image serializes computed styles into an SVG foreignObject, so
+    // it handles Tailwind v4's oklch()/color-mix() colors that crash
+    // html2canvas. We race it against a timeout because a hidden/blurred tab
+    // can stall image decoding indefinitely.
     try {
-      const canvas = await html2canvas(containerRef.current, {
+      const capture = toJpeg(node, {
+        quality: 0.7,
+        // Half-res keeps the data URL small enough to post + store.
+        pixelRatio: 0.6,
         backgroundColor: "#ffffff",
-        scale: 0.5,
-        logging: false,
-        useCORS: true,
+        // Skip cross-origin assets that would otherwise reject the whole render.
+        skipFonts: true,
+        cacheBust: true,
+        filter: (el) => {
+          // Don't try to snapshot the floating evidence/overlay chrome.
+          if (!(el instanceof HTMLElement)) return true;
+          return el.dataset?.noCapture !== "true";
+        },
       });
-      return canvas.toDataURL("image/jpeg", 0.6);
+      const timeout = new Promise<undefined>((resolve) =>
+        setTimeout(() => resolve(undefined), 2500)
+      );
+      const result = await Promise.race([capture, timeout]);
+      return result ?? undefined;
     } catch {
       return undefined;
     }

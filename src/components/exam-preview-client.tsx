@@ -74,6 +74,33 @@ export function ExamPreviewClient({
             </div>
           )}
           {g.questions.map((q) => {
+            if (q.type === "passage") {
+              return (
+                <div key={q.id} className="glass rounded-2xl p-5">
+                  <div className="text-xs font-medium text-[var(--primary)] mb-2 uppercase tracking-wide">
+                    Reading passage
+                  </div>
+                  {q.imageUrl && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={q.imageUrl}
+                      alt=""
+                      className="mb-3 w-full max-h-72 object-contain rounded-xl border border-[var(--border)] bg-[var(--bg-muted)]"
+                    />
+                  )}
+                  {q.prompt && (
+                    <h3 className="text-lg font-semibold text-[var(--fg)] mb-2">
+                      {q.prompt}
+                    </h3>
+                  )}
+                  {q.description && (
+                    <div className="rounded-xl bg-[var(--bg-soft)] border border-[var(--border)] p-4 text-base leading-relaxed text-[var(--fg)] whitespace-pre-wrap">
+                      {q.description}
+                    </div>
+                  )}
+                </div>
+              );
+            }
             qIndex++;
             return (
               <div

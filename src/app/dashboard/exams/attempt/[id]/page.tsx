@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Clock, AlertTriangle } from "lucide-react";
 import { formatDateTime } from "@/lib/utils";
 import { AnswerGrader } from "@/components/answer-grader";
+import { parseCollectFields } from "@/lib/collect-fields";
 
 export default async function AttemptDetailPage({
   params,
@@ -24,6 +25,8 @@ export default async function AttemptDetailPage({
     },
   });
   if (!attempt || attempt.exam.ownerId !== user.id) notFound();
+
+  const collectFields = parseCollectFields(attempt.exam.collectFields);
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
@@ -71,6 +74,30 @@ export default async function AttemptDetailPage({
           )}
           <span>· {attempt.violations.length} violations</span>
         </div>
+
+        {(() => {
+          const collected = attempt.studentInfo
+            ? (JSON.parse(attempt.studentInfo) as Record<string, string>)
+            : null;
+          const fields = collectFields;
+          if (!collected || fields.length === 0) return null;
+          const rows = fields
+            .filter((f) => collected[f.key])
+            .map((f) => ({ label: f.label, value: collected[f.key] }));
+          if (rows.length === 0) return null;
+          return (
+            <div className="mt-4 pt-4 border-t border-[var(--border)] flex flex-wrap gap-x-6 gap-y-2">
+              {rows.map((r) => (
+                <div key={r.label}>
+                  <div className="text-[11px] uppercase tracking-wide text-[var(--fg-subtle)]">
+                    {r.label}
+                  </div>
+                  <div className="text-sm text-[var(--fg)]">{r.value}</div>
+                </div>
+              ))}
+            </div>
+          );
+        })()}
       </div>
 
       {attempt.violations.length > 0 && (

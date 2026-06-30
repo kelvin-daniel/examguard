@@ -67,6 +67,10 @@ model Exam {
   allowCalculator         Boolean @default(false)
   allowScratchpad         Boolean @default(false)
 
+  // JSON array of extra sign-in fields collected before the exam starts.
+  // null/empty = just the student's full name. Each: { key, label, type, required, options? }
+  collectFields    String?
+
   ownerId          String
   owner            User       @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   sections         Section[]
@@ -113,6 +117,7 @@ model Attempt {
   exam          Exam        @relation(fields: [examId], references: [id], onDelete: Cascade)
   studentName   String
   studentEmail  String?
+  studentInfo   String?     // JSON object of collected sign-in field values
   startedAt     DateTime    @default(now())
   submittedAt   DateTime?
   score         Float?

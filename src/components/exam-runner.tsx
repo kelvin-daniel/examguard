@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { QuestionInput } from "@/components/question-input";
 import { useConfirm } from "@/components/ui/confirm";
 import {
+  BookOpen,
   Clock,
   ShieldCheck,
   Maximize,
@@ -355,40 +356,69 @@ export function ExamRunner({
         />
 
         <div className="max-w-3xl w-full mx-auto px-4 py-5 sm:py-7">
-          <div className="text-sm text-[var(--fg-muted)] mb-3">
-            Question {idx + 1} of {total}
-            <span className="mx-2">·</span>
-            {current.points} {current.points === 1 ? "point" : "points"}
-          </div>
-          {current.imageUrl && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={current.imageUrl}
-              alt=""
-              className="mb-4 w-full max-h-72 object-contain rounded-2xl border border-[var(--border)] bg-[var(--bg-muted)]"
-            />
-          )}
-          <h2 className="text-xl sm:text-2xl font-medium text-[var(--fg)] whitespace-pre-wrap leading-snug">
-            {current.prompt || (
-              <em className="text-[var(--fg-subtle)]">(No prompt)</em>
-            )}
-            {current.required && (
-              <span className="text-[#dc2626] ml-1">*</span>
-            )}
-          </h2>
-          {current.description && (
-            <p className="mt-2 text-sm text-[var(--fg-muted)] whitespace-pre-wrap">
-              {current.description}
-            </p>
-          )}
+          {current.type === "passage" ? (
+            <>
+              <div className="flex items-center gap-2 text-sm font-medium text-[var(--primary)] mb-3">
+                <BookOpen className="h-4 w-4" />
+                Reading passage
+              </div>
+              {current.imageUrl && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={current.imageUrl}
+                  alt=""
+                  className="mb-4 w-full max-h-80 object-contain rounded-2xl border border-[var(--border)] bg-[var(--bg-muted)]"
+                />
+              )}
+              {current.prompt && (
+                <h2 className="text-xl sm:text-2xl font-semibold text-[var(--fg)] mb-3">
+                  {current.prompt}
+                </h2>
+              )}
+              {current.description && (
+                <div className="rounded-2xl bg-[var(--bg-soft)] border border-[var(--border)] p-5 sm:p-6 text-base sm:text-lg leading-relaxed text-[var(--fg)] whitespace-pre-wrap">
+                  {current.description}
+                </div>
+              )}
+            </>
+          ) : (
+            <>
+              <div className="text-sm text-[var(--fg-muted)] mb-3">
+                Question {idx + 1} of {total}
+                <span className="mx-2">·</span>
+                {current.points} {current.points === 1 ? "point" : "points"}
+              </div>
+              {current.imageUrl && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={current.imageUrl}
+                  alt=""
+                  className="mb-4 w-full max-h-72 object-contain rounded-2xl border border-[var(--border)] bg-[var(--bg-muted)]"
+                />
+              )}
+              <h2 className="text-xl sm:text-2xl font-medium text-[var(--fg)] whitespace-pre-wrap leading-snug">
+                {current.prompt || (
+                  <em className="text-[var(--fg-subtle)]">(No prompt)</em>
+                )}
+                {current.required && (
+                  <span className="text-[#dc2626] ml-1">*</span>
+                )}
+              </h2>
+              {current.description && (
+                <p className="mt-2 text-base text-[var(--fg-muted)] whitespace-pre-wrap">
+                  {current.description}
+                </p>
+              )}
 
-          <div className="mt-5">
-            <QuestionInput
-              question={current}
-              value={answers[current.id] ?? ""}
-              onChange={(v) => saveAnswer(current.id, v)}
-            />
-          </div>
+              <div className="mt-5">
+                <QuestionInput
+                  question={current}
+                  value={answers[current.id] ?? ""}
+                  onChange={(v) => saveAnswer(current.id, v)}
+                />
+              </div>
+            </>
+          )}
 
           {/* Navigation */}
           <div className="mt-6 flex items-center justify-between gap-2">

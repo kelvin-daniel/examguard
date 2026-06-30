@@ -2,7 +2,9 @@ import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/auth";
 import { uploadBuffer } from "@/lib/storage";
 
-const MAX_BYTES = 5 * 1024 * 1024; // 5 MB
+// Client compresses to a byte budget first; this is a generous safety ceiling
+// that also leaves room for GIFs (which pass through uncompressed).
+const MAX_BYTES = 8 * 1024 * 1024; // 8 MB
 const ALLOWED_MIME = new Set([
   "image/jpeg",
   "image/png",

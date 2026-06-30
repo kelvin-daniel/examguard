@@ -20,6 +20,8 @@ import {
 } from "lucide-react";
 import { FormsEditor } from "./forms-editor";
 import type { EditorQuestion, EditorSection } from "./forms-editor";
+import { CollectFieldsEditor } from "./collect-fields-editor";
+import type { CollectField } from "@/lib/collect-fields";
 
 type ExamShape = {
   id: string;
@@ -46,6 +48,7 @@ type ExamShape = {
   autoSubmitOnViolations: number;
   allowCalculator: boolean;
   allowScratchpad: boolean;
+  collectFields: CollectField[];
 };
 
 export function ExamEditor({
@@ -99,6 +102,7 @@ export function ExamEditor({
         autoSubmitOnViolations: e.autoSubmitOnViolations,
         allowCalculator: e.allowCalculator,
         allowScratchpad: e.allowScratchpad,
+        collectFields: e.collectFields,
       }),
     });
     setSavingSettings(false);
@@ -499,6 +503,22 @@ export function ExamEditor({
               description="A note panel for working out answers — not graded."
               checked={e.allowScratchpad}
               onChange={(v) => setE((s) => ({ ...s, allowScratchpad: v }))}
+            />
+          </fieldset>
+
+          <fieldset className="space-y-4 rounded-2xl border border-[var(--border)] bg-white/40 dark:bg-white/5 backdrop-blur-sm p-5">
+            <legend className="text-sm font-semibold px-1 text-[var(--fg)]">
+              Student sign-in fields
+            </legend>
+            <p className="text-sm text-[var(--fg-muted)] -mt-1">
+              Full name is always collected. Add anything else you need before
+              students start — class, ID, email, or your own custom fields.
+            </p>
+            <CollectFieldsEditor
+              fields={e.collectFields}
+              onChange={(collectFields) =>
+                setE((s) => ({ ...s, collectFields }))
+              }
             />
           </fieldset>
 

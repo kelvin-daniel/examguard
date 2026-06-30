@@ -25,6 +25,18 @@ const patchSchema = z.object({
   autoSubmitOnViolations: z.number().int().min(0).max(20).optional(),
   allowCalculator: z.boolean().optional(),
   allowScratchpad: z.boolean().optional(),
+  collectFields: z
+    .array(
+      z.object({
+        key: z.string().min(1).max(40),
+        label: z.string().min(1).max(80),
+        type: z.enum(["text", "email", "number", "select"]),
+        required: z.boolean(),
+        options: z.array(z.string().max(80)).max(30).optional(),
+      })
+    )
+    .max(15)
+    .optional(),
 });
 
 export async function PATCH(
@@ -68,12 +80,17 @@ export async function PATCH(
     }
   }
 
+  // collectFields is an array in the request but a JSON string column.
+  const { collectFields, ...rest } = parsed.data;
   const updated = await prisma.exam.update({
     where: { id },
     data: {
-      ...parsed.data,
+      ...rest,
       startAt: parsed.data.startAt ? new Date(parsed.data.startAt) : parsed.data.startAt,
       endAt: parsed.data.endAt ? new Date(parsed.data.endAt) : parsed.data.endAt,
+      ...(collectFields !== undefined
+        ? { collectFields: collectFields.length ? JSON.stringify(collectFields) : null }
+        : {}),
     },
   });
   return NextResponse.json({ exam: updated });
