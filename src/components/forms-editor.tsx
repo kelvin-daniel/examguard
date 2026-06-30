@@ -249,11 +249,25 @@ export function FormsEditor({
     setSections(nextSections);
     setQuestions(nextQuestions);
 
-    void fetch(`/api/exams/${examId}/reorder`, {
+    // `keepalive` lets the save finish even if the teacher navigates away
+    // right after dropping — otherwise the browser aborts the in-flight POST
+    // and the new order is lost on reload.
+    fetch(`/api/exams/${examId}/reorder`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ items: keys }),
-    });
+      keepalive: true,
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error(String(res.status));
+      })
+      .catch(() => {
+        toast({
+          kind: "error",
+          title: "Couldn't save the new order",
+          description: "Check your connection — your change may not be saved.",
+        });
+      });
   }
 
   /**
@@ -341,10 +355,16 @@ export function FormsEditor({
     if ("config" in body) {
       body.config = patch.config ?? null;
     }
+    const serialized = JSON.stringify(body);
+    // keepalive lets the save survive navigation, but the browser caps
+    // keepalive bodies at 64KB — a base64 image patch is far bigger, so only
+    // use it for small payloads (everything except image attachments).
+    const useKeepalive = serialized.length < 50_000;
     void fetch(`/api/questions/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
+      body: serialized,
+      keepalive: useKeepalive,
     });
   }
 
@@ -356,6 +376,7 @@ export function FormsEditor({
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(patch),
+      keepalive: true,
     });
   }
 
