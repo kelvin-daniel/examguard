@@ -23,7 +23,7 @@ automatic screenshot evidence on every flagged event.
 - Tailwind CSS v4
 - Custom session auth (bcryptjs + httpOnly cookies)
 - dnd-kit for drag-to-reorder
-- html2canvas for screenshot evidence
+- html-to-image for screenshot evidence (handles modern CSS colors)
 - Resend for transactional email (optional — falls back to console logs)
 
 ## Local development
@@ -59,10 +59,15 @@ turso db create examguard
 turso db show examguard --url           # → DATABASE_URL
 turso db tokens create examguard        # → TURSO_AUTH_TOKEN
 
-# Apply your schema
+# Apply your schema — prisma migrate can't target libsql:// URLs, so use the
+# idempotent sync script instead. Safe to re-run anytime; never drops data.
 DATABASE_URL="<turso-url>" TURSO_AUTH_TOKEN="<token>" \
-  npx prisma migrate deploy
+  npm run db:sync
 ```
+
+> If a deployed page ever 500s right after a schema change, it's almost always
+> Turso schema drift — re-run `npm run db:sync` with your Turso credentials to
+> add any missing tables/columns.
 
 ### 2. Object storage — Cloudflare R2 (free: 10 GB, no egress fees)
 

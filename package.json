@@ -7,7 +7,8 @@
     "build": "prisma generate && next build",
     "start": "next start",
     "postinstall": "prisma generate",
-    "db:deploy": "prisma migrate deploy"
+    "db:deploy": "prisma migrate deploy",
+    "db:sync": "node scripts/sync-turso-schema.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1040.0",

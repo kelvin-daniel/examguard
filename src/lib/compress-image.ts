@@ -89,9 +89,3 @@ export async function compressImageDetailed(
     bitmap.close();
   }
 }
-
-/** Back-compat thin wrapper — returns the blob, or the original on failure. */
-export async function compressImage(file: File): Promise<Blob> {
-  const r = await compressImageDetailed(file);
-  return r.ok ? r.blob : file;
-}

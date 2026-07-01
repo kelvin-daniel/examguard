@@ -6,6 +6,7 @@ import { useAntiCheat, type EnforcementSettings } from "@/hooks/use-anti-cheat";
 import { Button } from "@/components/ui/button";
 import { QuestionInput } from "@/components/question-input";
 import { useConfirm } from "@/components/ui/confirm";
+import { ExamTools } from "@/components/exam-tools";
 import {
   BookOpen,
   Clock,
@@ -484,6 +485,14 @@ export function ExamRunner({
           </div>
         </div>
       </nav>
+
+      {!paused && (
+        <ExamTools
+          attemptId={attemptId}
+          calculator={settings.allowCalculator}
+          scratchpad={settings.allowScratchpad}
+        />
+      )}
     </div>
   );
 }
