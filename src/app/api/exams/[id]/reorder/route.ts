@@ -31,51 +31,51 @@ export async function POST(
   if (!parsed.success || (!parsed.data.items && !parsed.data.questions))
     return NextResponse.json({ error: "Invalid input" }, { status: 400 });
 
-  // Legacy: question-only reorder
-  if (parsed.data.questions && !parsed.data.items) {
-    await prisma.$transaction(
-      parsed.data.questions.map((qid, i) =>
-        prisma.question.update({
-          where: { id: qid },
+  // We deliberately do NOT wrap these in prisma.$transaction(): the remote
+  // libsql (Turso) adapter can fail to commit a batched array transaction,
+  // which silently lost reorders in production while working on local SQLite.
+  // Sequential updates are slower but reliable on every backend; a partial
+  // failure just means the next reorder corrects it.
+  try {
+    // Legacy: question-only reorder
+    if (parsed.data.questions && !parsed.data.items) {
+      for (let i = 0; i < parsed.data.questions.length; i++) {
+        await prisma.question.update({
+          where: { id: parsed.data.questions[i] },
           data: { order: i },
-        })
-      )
-    );
-    return NextResponse.json({ ok: true });
-  }
+        });
+      }
+      return NextResponse.json({ ok: true });
+    }
 
-  // Unified order. Walk the list; each section gets its own order index, and
-  // questions get a sectionId = the closest preceding section's id (or null).
-  const items = parsed.data.items!;
-  let currentSectionId: string | null = null;
-  let sectionOrder = 0;
-  let questionOrder = 0;
-  // Mixed update operations — section and question updates have different
-  // client types, so we widen to a common Promise-like array.
-  const ops: Array<ReturnType<
-    | typeof prisma.section.update
-    | typeof prisma.question.update
-  >> = [];
-  for (const item of items) {
-    if (item.startsWith("s:")) {
-      const sid = item.slice(2);
-      ops.push(
-        prisma.section.update({
+    // Unified order. Walk the list; each section gets its own order index, and
+    // questions get a sectionId = the closest preceding section's id (or null).
+    const items = parsed.data.items!;
+    let currentSectionId: string | null = null;
+    let sectionOrder = 0;
+    let questionOrder = 0;
+    for (const item of items) {
+      if (item.startsWith("s:")) {
+        const sid = item.slice(2);
+        await prisma.section.update({
           where: { id: sid },
           data: { order: sectionOrder++ },
-        })
-      );
-      currentSectionId = sid;
-    } else if (item.startsWith("q:")) {
-      const qid = item.slice(2);
-      ops.push(
-        prisma.question.update({
+        });
+        currentSectionId = sid;
+      } else if (item.startsWith("q:")) {
+        const qid = item.slice(2);
+        await prisma.question.update({
           where: { id: qid },
           data: { order: questionOrder++, sectionId: currentSectionId },
-        })
-      );
+        });
+      }
     }
+    return NextResponse.json({ ok: true });
+  } catch (err) {
+    console.error("reorder failed", err);
+    return NextResponse.json(
+      { error: "Could not save the new order." },
+      { status: 500 }
+    );
   }
-  await prisma.$transaction(ops);
-  return NextResponse.json({ ok: true });
 }
