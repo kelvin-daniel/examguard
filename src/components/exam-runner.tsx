@@ -24,6 +24,7 @@ import {
 type RunnerQuestion = {
   id: string;
   type: string;
+  sectionId: string | null;
   prompt: string;
   description: string | null;
   points: number;
@@ -37,6 +38,12 @@ type RunnerQuestion = {
 type RunnerSettings = EnforcementSettings & {
   allowCalculator: boolean;
   allowScratchpad: boolean;
+};
+
+type RunnerSection = {
+  id: string;
+  title: string;
+  description: string | null;
 };
 
 const VIOLATION_LABELS: Record<string, string> = {
@@ -57,6 +64,7 @@ export function ExamRunner({
   studentName,
   deadline: initialDeadline,
   questions,
+  sections,
   initialAnswers,
   initialStatus,
   initialPausedReason,
@@ -67,6 +75,7 @@ export function ExamRunner({
   studentName: string;
   deadline: string;
   questions: RunnerQuestion[];
+  sections: RunnerSection[];
   initialAnswers: Record<string, string>;
   initialStatus: string;
   initialPausedReason: string | null;
@@ -202,6 +211,27 @@ export function ExamRunner({
     [answerable, answered]
   );
 
+  // Sections in the order the student actually encounters them (only ones
+  // that contain served questions), so "Section 2 of 4" matches their path.
+  const sectionOrder = useMemo(() => {
+    const seen: string[] = [];
+    for (const q of questions) {
+      if (q.sectionId && !seen.includes(q.sectionId)) seen.push(q.sectionId);
+    }
+    return seen;
+  }, [questions]);
+  const currentSection = current?.sectionId
+    ? sections.find((s) => s.id === current.sectionId) ?? null
+    : null;
+  const currentSectionNumber = current?.sectionId
+    ? sectionOrder.indexOf(current.sectionId) + 1
+    : 0;
+  // Show the section's description only when the student lands on its first
+  // question — after that it's just noise above every question.
+  const isFirstOfSection =
+    !!current?.sectionId &&
+    questions.findIndex((q) => q.sectionId === current.sectionId) === idx;
+
   /**
    * Translate a response based on the *displayed* (shuffled) options into one
    * keyed by the *original* option index, so the server-side grader works
@@ -248,18 +278,30 @@ export function ExamRunner({
 
   async function submit(auto = false) {
     if (!auto) {
-      const remainingUnanswered = answerable.length - answeredCount;
-      const requiredUnanswered = answerable.filter(
+      // Hard gate: required questions must be answered before a manual
+      // submit. (Timeout auto-submit still goes through — the clock wins.)
+      const missingRequired = answerable.filter(
         (q) => q.required && !answered.has(q.id)
-      ).length;
+      );
+      if (missingRequired.length > 0) {
+        const firstIdx = questions.findIndex(
+          (q) => q.id === missingRequired[0].id
+        );
+        await confirm({
+          title: "Required questions left blank",
+          description: `You still have ${missingRequired.length} required question${
+            missingRequired.length === 1 ? "" : "s"
+          } to answer before you can submit. We'll take you to the first one.`,
+          confirmLabel: "Take me there",
+        });
+        if (firstIdx >= 0) setIdx(firstIdx);
+        return;
+      }
+      const remainingUnanswered = answerable.length - answeredCount;
       const ok = await confirm({
         title: "Submit your exam?",
         description:
-          requiredUnanswered > 0
-            ? `${requiredUnanswered} required question${
-                requiredUnanswered === 1 ? " is" : "s are"
-              } still blank. Once you submit, you can't make changes.`
-            : remainingUnanswered > 0
+          remainingUnanswered > 0
             ? `You have ${remainingUnanswered} question${
                 remainingUnanswered === 1 ? "" : "s"
               } left blank. Once you submit, you can't make changes.`
@@ -357,6 +399,19 @@ export function ExamRunner({
         />
 
         <div className="max-w-3xl w-full mx-auto px-4 py-5 sm:py-7">
+          {currentSection && (
+            <div className="mb-4">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-[#dbeafe] dark:bg-[#1e3a8a]/40 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-[#1d4ed8] dark:text-[#93c5fd]">
+                Section {currentSectionNumber} of {sectionOrder.length}
+                {currentSection.title ? ` · ${currentSection.title}` : ""}
+              </span>
+              {isFirstOfSection && currentSection.description && (
+                <p className="mt-2 text-sm text-[var(--fg-muted)] whitespace-pre-wrap">
+                  {currentSection.description}
+                </p>
+              )}
+            </div>
+          )}
           {current.type === "passage" ? (
             <>
               <div className="flex items-center gap-2 text-sm font-medium text-[var(--primary)] mb-3">
@@ -466,6 +521,8 @@ export function ExamRunner({
             {questions.map((q, i) => {
               const isCurrent = i === idx;
               const isAnswered = answered.has(q.id);
+              const needsAnswer =
+                q.required && q.type !== "passage" && !isAnswered;
               return (
                 <button
                   key={q.id}
@@ -475,8 +532,11 @@ export function ExamRunner({
                       ? "bg-gradient-to-b from-[#3b82f6] to-[#2563eb] text-white shadow-[0_2px_8px_-2px_rgba(37,99,235,0.45)]"
                       : isAnswered
                       ? "bg-[#d1fae5] text-[#047857] dark:bg-[#064e3b] dark:text-[#10b981]"
+                      : needsAnswer
+                      ? "bg-white/60 dark:bg-white/5 text-[var(--fg-muted)] ring-1 ring-inset ring-[#fca5a5]"
                       : "bg-white/60 dark:bg-white/5 text-[var(--fg-muted)]"
                   }`}
+                  title={needsAnswer ? "Required — not answered yet" : undefined}
                 >
                   {i + 1}
                 </button>

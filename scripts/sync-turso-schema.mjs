@@ -77,6 +77,7 @@ const CREATE_TABLES = [
     "allowCalculator" BOOLEAN NOT NULL DEFAULT false,
     "allowScratchpad" BOOLEAN NOT NULL DEFAULT false,
     "collectFields" TEXT,
+    "defaultPoints" REAL NOT NULL DEFAULT 1,
     "ownerId" TEXT NOT NULL,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -97,7 +98,7 @@ const CREATE_TABLES = [
     "type" TEXT NOT NULL,
     "prompt" TEXT NOT NULL,
     "description" TEXT,
-    "points" INTEGER NOT NULL DEFAULT 1,
+    "points" REAL NOT NULL DEFAULT 1,
     "required" BOOLEAN NOT NULL DEFAULT true,
     "shuffleOptions" BOOLEAN,
     "options" TEXT,
@@ -165,6 +166,7 @@ const EXPECTED_COLUMNS = [
   ["Exam", "allowCalculator", `"allowCalculator" BOOLEAN NOT NULL DEFAULT false`],
   ["Exam", "allowScratchpad", `"allowScratchpad" BOOLEAN NOT NULL DEFAULT false`],
   ["Exam", "collectFields", `"collectFields" TEXT`],
+  ["Exam", "defaultPoints", `"defaultPoints" REAL NOT NULL DEFAULT 1`],
   ["Section", "description", `"description" TEXT`],
   ["Question", "sectionId", `"sectionId" TEXT`],
   ["Question", "description", `"description" TEXT`],
@@ -181,12 +183,31 @@ const EXPECTED_COLUMNS = [
   ["Violation", "resolvedAt", `"resolvedAt" DATETIME`],
 ];
 
+// Columns whose declared type must change on drifted DBs. SQLite can't ALTER
+// a column type, so we rename → add with the right type → copy → drop.
+// The libsql layer coerces values to the DECLARED type, so an INTEGER
+// "points" silently truncates 0.5 → 0; it must be REAL.
+// [table, column, wantedType, "definition for the new column"]
+const RETYPE_COLUMNS = [
+  ["Question", "points", "REAL", `"points" REAL NOT NULL DEFAULT 1`],
+];
+
 async function columnsFor(table) {
   try {
     const res = await db.execute(`PRAGMA table_info("${table}")`);
     return new Set(res.rows.map((r) => r.name));
   } catch {
     return new Set();
+  }
+}
+
+async function columnType(table, col) {
+  try {
+    const res = await db.execute(`PRAGMA table_info("${table}")`);
+    const row = res.rows.find((r) => r.name === col);
+    return row ? String(row.type).toUpperCase() : null;
+  } catch {
+    return null;
   }
 }
 
@@ -221,6 +242,18 @@ async function main() {
   console.log(
     added ? `\n✓ Added ${added} missing column(s)` : `\n✓ All columns present`
   );
+
+  for (const [table, col, wanted, def] of RETYPE_COLUMNS) {
+    const current = await columnType(table, col);
+    if (!current || current === wanted) continue;
+    const tmp = `${col}_retype_old`;
+    await db.execute(`ALTER TABLE "${table}" RENAME COLUMN "${col}" TO "${tmp}"`);
+    await db.execute(`ALTER TABLE "${table}" ADD COLUMN ${def}`);
+    await db.execute(`UPDATE "${table}" SET "${col}" = "${tmp}"`);
+    await db.execute(`ALTER TABLE "${table}" DROP COLUMN "${tmp}"`);
+    console.log(`  ~ ${table}.${col}: ${current} → ${wanted}`);
+  }
+
   console.log("Schema is in sync. Safe to re-run anytime.");
 }
 

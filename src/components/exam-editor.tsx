@@ -34,6 +34,7 @@ type ExamShape = {
   showResults: boolean;
   passingScore: number;
   passingScoreMode: "percentage" | "points";
+  defaultPoints: number;
   startAt: string | null;
   endAt: string | null;
   status: string;
@@ -91,6 +92,7 @@ export function ExamEditor({
         showResults: e.showResults,
         passingScore: e.passingScore,
         passingScoreMode: e.passingScoreMode,
+        defaultPoints: e.defaultPoints,
         startAt: e.startAt,
         endAt: e.endAt,
         requireFullscreen: e.requireFullscreen,
@@ -297,6 +299,7 @@ export function ExamEditor({
             examId={e.id}
             initialQuestions={initialQuestions}
             initialSections={initialSections}
+            defaultPoints={e.defaultPoints}
           />
         </div>
       )}
@@ -418,6 +421,52 @@ export function ExamEditor({
               checked={e.showResults}
               onChange={(v) => setE((s) => ({ ...s, showResults: v }))}
             />
+
+            <div className="pt-2 border-t border-[var(--border)]">
+              <div className="text-sm font-medium text-[var(--fg)]">
+                Default points per question
+              </div>
+              <div className="text-xs text-[var(--fg-muted)] mt-0.5">
+                New questions start with this value — you can still change any
+                question individually.
+              </div>
+              <div className="mt-3 flex items-center gap-1.5 flex-wrap">
+                {[0.5, 1, 2, 5].map((v) => (
+                  <button
+                    key={v}
+                    type="button"
+                    onClick={() => setE((s) => ({ ...s, defaultPoints: v }))}
+                    className={`h-9 min-w-12 px-3 rounded-xl text-sm font-medium border transition-colors ${
+                      e.defaultPoints === v
+                        ? "border-[var(--primary)] bg-[#dbeafe] text-[#1d4ed8] dark:bg-[#1e3a8a]/40 dark:text-[#93c5fd]"
+                        : "border-[var(--border-strong)] bg-white/70 dark:bg-white/5 text-[var(--fg-muted)] hover:border-[var(--primary)]"
+                    }`}
+                  >
+                    {v}
+                  </button>
+                ))}
+                <div className="flex items-center gap-1.5 ml-1">
+                  <Input
+                    type="number"
+                    min={0}
+                    max={1000}
+                    step={0.5}
+                    value={e.defaultPoints}
+                    onChange={(ev) => {
+                      const n = Number(ev.target.value);
+                      setE((s) => ({
+                        ...s,
+                        defaultPoints: Number.isNaN(n) || n < 0 ? 0 : n,
+                      }));
+                    }}
+                    className="h-9 w-24 text-center"
+                  />
+                  <span className="text-xs text-[var(--fg-muted)]">
+                    custom
+                  </span>
+                </div>
+              </div>
+            </div>
           </fieldset>
 
           <fieldset className="space-y-4 rounded-2xl border border-[var(--border)] bg-white/40 dark:bg-white/5 backdrop-blur-sm p-5">

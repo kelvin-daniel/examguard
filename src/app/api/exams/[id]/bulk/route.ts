@@ -148,7 +148,8 @@ export async function POST(
           order: startOrder + i,
           type: s.type,
           prompt: s.prompt,
-          points: s.points,
+          // Parsed stubs default to 1pt; honor the exam's configured default
+          points: s.points === 1 ? exam.defaultPoints : s.points,
           options: s.options ? JSON.stringify(s.options) : null,
           correct: s.correct !== undefined ? JSON.stringify(s.correct) : null,
         },

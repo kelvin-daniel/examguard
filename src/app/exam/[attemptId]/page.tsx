@@ -14,7 +14,9 @@ export default async function ExamAttemptPage({
   const attempt = await prisma.attempt.findUnique({
     where: { id: attemptId },
     include: {
-      exam: true,
+      exam: {
+        include: { sections: { orderBy: { order: "asc" } } },
+      },
       answers: true,
     },
   });
@@ -72,6 +74,7 @@ export default async function ExamAttemptPage({
       return {
         id: q.id,
         type: q.type,
+        sectionId: q.sectionId,
         prompt: q.prompt,
         description: q.description,
         points: q.points,
@@ -126,6 +129,11 @@ export default async function ExamAttemptPage({
       studentName={attempt.studentName}
       deadline={deadline}
       questions={questions}
+      sections={attempt.exam.sections.map((s) => ({
+        id: s.id,
+        title: s.title,
+        description: s.description,
+      }))}
       initialAnswers={answersMap}
       initialStatus={attempt.status}
       initialPausedReason={attempt.pausedReason}

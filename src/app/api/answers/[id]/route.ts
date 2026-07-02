@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 
 const schema = z.object({
-  pointsEarned: z.number().min(0).max(100),
+  pointsEarned: z.number().min(0).max(1000),
 });
 
 /**
@@ -48,18 +48,28 @@ export async function PATCH(
     data: { pointsEarned: capped, isCorrect },
   });
 
-  // Recompute attempt total
-  const all = await prisma.answer.findMany({
-    where: { attemptId: answer.attemptId },
-  });
+  // Recompute the attempt total — and maxScore too, so grading an attempt
+  // that never went through normal submit (terminated / still in progress)
+  // still produces a visible score instead of score-without-max.
+  const [all, questions] = await Promise.all([
+    prisma.answer.findMany({ where: { attemptId: answer.attemptId } }),
+    prisma.question.findMany({
+      where: { examId: answer.attempt.examId },
+      select: { points: true, type: true },
+    }),
+  ]);
   const score = all.reduce((s, a) => s + (a.pointsEarned ?? 0), 0);
+  const maxScore = questions
+    .filter((q) => q.type !== "passage")
+    .reduce((s, q) => s + q.points, 0);
   await prisma.attempt.update({
     where: { id: answer.attemptId },
-    data: { score },
+    data: { score, maxScore },
   });
 
   return NextResponse.json({
     answer: { id, pointsEarned: capped, isCorrect },
     score,
+    maxScore,
   });
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   DndContext,
   PointerSensor,
@@ -81,6 +81,69 @@ export type EditorSection = {
   description: string | null;
 };
 
+/**
+ * The editor's single source of truth: one linear array of cards, exactly as
+ * rendered top-to-bottom. A question's sectionId and every order value are
+ * DERIVED from array position (see normalize) — they are never authored
+ * independently, so section membership can't drift from what's on screen.
+ */
+export type EditorItem =
+  | { kind: "section"; section: EditorSection }
+  | { kind: "question"; question: EditorQuestion };
+
+function keyOf(item: EditorItem): string {
+  return item.kind === "section"
+    ? `s:${item.section.id}`
+    : `q:${item.question.id}`;
+}
+
+/** Initial load: fold (order, sectionId)-shaped server rows into the linear list. */
+function buildItems(
+  questions: EditorQuestion[],
+  sections: EditorSection[]
+): EditorItem[] {
+  const sortedQs = [...questions].sort((a, b) => a.order - b.order);
+  const sortedSecs = [...sections].sort((a, b) => a.order - b.order);
+  const out: EditorItem[] = [];
+  for (const q of sortedQs.filter((q) => !q.sectionId))
+    out.push({ kind: "question", question: q });
+  for (const s of sortedSecs) {
+    out.push({ kind: "section", section: s });
+    for (const q of sortedQs.filter((q) => q.sectionId === s.id))
+      out.push({ kind: "question", question: q });
+  }
+  // Defensive: never drop a question whose sectionId points at a missing section.
+  for (const q of sortedQs) {
+    if (!out.some((it) => it.kind === "question" && it.question.id === q.id))
+      out.push({ kind: "question", question: q });
+  }
+  return out;
+}
+
+/**
+ * Walk the linear list and re-derive order + sectionId from position:
+ * a question belongs to the closest preceding section (or none). Mirrors the
+ * server's reorder walk exactly, so what you see is what persists.
+ */
+function normalize(items: EditorItem[]): EditorItem[] {
+  let sIdx = 0;
+  let qIdx = 0;
+  let currentSectionId: string | null = null;
+  return items.map((it) => {
+    if (it.kind === "section") {
+      currentSectionId = it.section.id;
+      return {
+        kind: "section" as const,
+        section: { ...it.section, order: sIdx++ },
+      };
+    }
+    return {
+      kind: "question" as const,
+      question: { ...it.question, order: qIdx++, sectionId: currentSectionId },
+    };
+  });
+}
+
 const TYPE_META: Record<
   QType,
   { label: string; icon: typeof CircleDot; color: string }
@@ -104,20 +167,30 @@ export function FormsEditor({
   examId,
   initialQuestions,
   initialSections,
+  defaultPoints = 1,
 }: {
   examId: string;
   initialQuestions: EditorQuestion[];
   initialSections: EditorSection[];
+  defaultPoints?: number;
 }) {
-  const [questions, setQuestions] =
-    useState<EditorQuestion[]>(initialQuestions);
-  const [sections, setSections] = useState<EditorSection[]>(initialSections);
+  const [items, setItems] = useState<EditorItem[]>(() =>
+    buildItems(initialQuestions, initialSections)
+  );
   const [selectedId, setSelectedId] = useState<string | null>(
     initialQuestions[0]?.id ?? null
   );
   const [bulkOpen, setBulkOpen] = useState(false);
   const { toast } = useToast();
   const confirm = useConfirm();
+
+  // Mutation handlers read these refs instead of render-captured state, so a
+  // handler created two renders ago still operates on the CURRENT list.
+  // (Stale closures here were why new sections sometimes landed at the bottom.)
+  const itemsRef = useRef(items);
+  itemsRef.current = items;
+  const selectedIdRef = useRef(selectedId);
+  selectedIdRef.current = selectedId;
 
   // Refs to each item card, used for auto-scroll on selection change.
   const itemRefs = useRef<Map<string, HTMLDivElement>>(new Map());
@@ -165,97 +238,25 @@ export function FormsEditor({
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
   );
 
-  // Order rendering:
-  // - Sort questions by `order`
-  // - Sections appear in their declared order with their questions following
-  // - Questions whose sectionId is null render in the implicit "main" group at the top
-  const ordered = useMemo(() => {
-    const sortedQs = [...questions].sort((a, b) => a.order - b.order);
-    const sortedSecs = [...sections].sort((a, b) => a.order - b.order);
-
-    type Item =
-      | { kind: "section"; section: EditorSection }
-      | { kind: "question"; question: EditorQuestion };
-
-    const out: Item[] = [];
-    const noSection = sortedQs.filter((q) => !q.sectionId);
-    for (const q of noSection) out.push({ kind: "question", question: q });
-
-    for (const s of sortedSecs) {
-      out.push({ kind: "section", section: s });
-      const qs = sortedQs.filter((q) => q.sectionId === s.id);
-      for (const q of qs) out.push({ kind: "question", question: q });
-    }
-    return out;
-  }, [questions, sections]);
-
   // ---- mutations ----
 
   /**
-   * Apply a new linear order of "s:<id>" / "q:<id>" keys. Walks the list,
-   * assigns sequential orders, reparents questions to the closest preceding
-   * section, and persists via the unified reorder API.
-   *
-   * `extraSections` and `extraQuestions` let callers fold newly-created
-   * records into the same pass (e.g. when inserting after the selected card).
+   * The one write path for structural changes. Normalizes the linear list
+   * (deriving order + sectionId from position), updates state AND the ref in
+   * the same tick, and optionally persists the order to the server.
    */
-  function applyLinearOrder(
-    keys: string[],
-    extraSections: EditorSection[] = [],
-    extraQuestions: EditorQuestion[] = []
-  ) {
-    // Look up against the (possibly extended) source lists, but produce BRAND
-    // NEW objects with updated order/section so React + dnd-kit reliably see a
-    // change. Mutating the existing state objects in place looked like "no
-    // change" and the dragged card animated back to its old slot.
-    const sourceSections = [...sections, ...extraSections];
-    const sourceQuestions = [...questions, ...extraQuestions];
-    const sectionsById = new Map(sourceSections.map((s) => [s.id, s]));
-    const questionsById = new Map(sourceQuestions.map((q) => [q.id, q]));
-
-    const nextSections: EditorSection[] = [];
-    const nextQuestions: EditorQuestion[] = [];
-    let currentSectionId: string | null = null;
-    let sIdx = 0;
-    let qIdx = 0;
-    for (const key of keys) {
-      if (key.startsWith("s:")) {
-        const s = sectionsById.get(key.slice(2));
-        if (!s) continue;
-        nextSections.push({ ...s, order: sIdx++ });
-        currentSectionId = s.id;
-      } else if (key.startsWith("q:")) {
-        const q = questionsById.get(key.slice(2));
-        if (!q) continue;
-        nextQuestions.push({
-          ...q,
-          order: qIdx++,
-          sectionId: currentSectionId,
-        });
-      }
-    }
-
-    // Preserve any items not present in `keys` (defensive — keys should be
-    // exhaustive, but never silently drop a card).
-    for (const s of sourceSections) {
-      if (!nextSections.some((x) => x.id === s.id))
-        nextSections.push({ ...s, order: sIdx++ });
-    }
-    for (const q of sourceQuestions) {
-      if (!nextQuestions.some((x) => x.id === q.id))
-        nextQuestions.push({ ...q, order: qIdx++ });
-    }
-
-    setSections(nextSections);
-    setQuestions(nextQuestions);
-
+  function commit(next: EditorItem[], opts: { persist?: boolean } = {}) {
+    const normalized = normalize(next);
+    itemsRef.current = normalized;
+    setItems(normalized);
+    if (!opts.persist) return;
     // `keepalive` lets the save finish even if the teacher navigates away
-    // right after dropping — otherwise the browser aborts the in-flight POST
-    // and the new order is lost on reload.
+    // right after the change — otherwise the browser aborts the in-flight
+    // POST and the new order is lost on reload.
     fetch(`/api/exams/${examId}/reorder`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ items: keys }),
+      body: JSON.stringify({ items: normalized.map(keyOf) }),
       keepalive: true,
     })
       .then((res) => {
@@ -271,38 +272,45 @@ export function FormsEditor({
   }
 
   /**
-   * Return the linear-key list with `insertKey` placed immediately after the
-   * key for the currently selected card. If nothing is selected, the key is
-   * appended at the end.
+   * Insert a new card immediately after the currently selected question — or
+   * at the end when nothing is selected. Reads refs, not render state, so it
+   * is correct even when called from a handler created several renders ago.
    */
-  function keysWithInsertAfterSelected(insertKey: string): string[] {
-    const baseKeys = ordered.map((it) =>
-      it.kind === "section" ? `s:${it.section.id}` : `q:${it.question.id}`
-    );
-    if (!selectedId) return [...baseKeys, insertKey];
-    const idx = baseKeys.indexOf(`q:${selectedId}`);
-    if (idx < 0) return [...baseKeys, insertKey];
-    return [
-      ...baseKeys.slice(0, idx + 1),
-      insertKey,
-      ...baseKeys.slice(idx + 1),
-    ];
+  function insertAfterSelected(newItem: EditorItem) {
+    const cur = itemsRef.current;
+    const sel = selectedIdRef.current;
+    const idx = sel
+      ? cur.findIndex(
+          (it) => it.kind === "question" && it.question.id === sel
+        )
+      : -1;
+    const next =
+      idx < 0
+        ? [...cur, newItem]
+        : [...cur.slice(0, idx + 1), newItem, ...cur.slice(idx + 1)];
+    commit(next, { persist: true });
   }
 
   async function addQuestion(type: QType) {
-    // Inherit the selected card's section so the new question lives in the
-    // same group, falling back to the last existing section, else null.
+    // Give the create POST a best-guess sectionId (selected card's section,
+    // else the last section) — the commit() below re-derives it from the
+    // final position anyway, this just avoids a server-side flash.
+    const cur = itemsRef.current;
+    const sel = selectedIdRef.current;
     let sectionId: string | null = null;
-    if (selectedId) {
-      const selectedQ = questions.find((q) => q.id === selectedId);
-      sectionId = selectedQ?.sectionId ?? null;
-    } else if (sections.length) {
-      sectionId = sections[sections.length - 1].id;
+    if (sel) {
+      const selItem = cur.find(
+        (it) => it.kind === "question" && it.question.id === sel
+      );
+      sectionId =
+        selItem?.kind === "question" ? selItem.question.sectionId : null;
+    } else {
+      for (const it of cur) if (it.kind === "section") sectionId = it.section.id;
     }
     const base: Record<string, unknown> = {
       type,
       prompt: type === "passage" ? "Passage" : "Untitled question",
-      points: type === "passage" ? 0 : 1,
+      points: type === "passage" ? 0 : defaultPoints,
       required: type !== "passage",
       sectionId,
     };
@@ -324,11 +332,17 @@ export function FormsEditor({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(base),
     });
-    if (!res.ok) return;
+    if (!res.ok) {
+      toast({
+        kind: "error",
+        title: "Couldn't add the question",
+        description: "Check your connection and try again.",
+      });
+      return;
+    }
     const { question } = await res.json();
     const q = serverToClient(question);
-    const keys = keysWithInsertAfterSelected(`q:${q.id}`);
-    applyLinearOrder(keys, [], [q]);
+    insertAfterSelected({ kind: "question", question: q });
     setSelectedId(q.id);
   }
 
@@ -338,16 +352,34 @@ export function FormsEditor({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ title: "Untitled section" }),
     });
-    if (!res.ok) return;
+    if (!res.ok) {
+      toast({
+        kind: "error",
+        title: "Couldn't add the section",
+        description: "Check your connection and try again.",
+      });
+      return;
+    }
     const { section } = await res.json();
-    const keys = keysWithInsertAfterSelected(`s:${section.id}`);
-    applyLinearOrder(keys, [section], []);
+    insertAfterSelected({
+      kind: "section",
+      section: {
+        id: section.id as string,
+        order: (section.order as number) ?? 0,
+        title: (section.title as string) ?? "Untitled section",
+        description: (section.description as string) ?? null,
+      },
+    });
   }
 
   function patchQuestion(id: string, patch: Partial<EditorQuestion>) {
-    setQuestions((qs) =>
-      qs.map((q) => (q.id === id ? { ...q, ...patch } : q))
+    const next = itemsRef.current.map((it) =>
+      it.kind === "question" && it.question.id === id
+        ? { kind: "question" as const, question: { ...it.question, ...patch } }
+        : it
     );
+    itemsRef.current = next;
+    setItems(next);
     const body: Record<string, unknown> = { ...patch };
     if ("options" in body) {
       body.options = patch.options ?? null;
@@ -369,9 +401,13 @@ export function FormsEditor({
   }
 
   function patchSection(id: string, patch: Partial<EditorSection>) {
-    setSections((ss) =>
-      ss.map((s) => (s.id === id ? { ...s, ...patch } : s))
+    const next = itemsRef.current.map((it) =>
+      it.kind === "section" && it.section.id === id
+        ? { kind: "section" as const, section: { ...it.section, ...patch } }
+        : it
     );
+    itemsRef.current = next;
+    setItems(next);
     void fetch(`/api/sections/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -397,23 +433,27 @@ export function FormsEditor({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
-    if (!res.ok) return;
+    if (!res.ok) {
+      toast({
+        kind: "error",
+        title: "Couldn't duplicate the question",
+        description: "Check your connection and try again.",
+      });
+      return;
+    }
     const { question } = await res.json();
     const dup = serverToClient(question);
     // Place the duplicate immediately after the source question
-    const baseKeys = ordered.map((it) =>
-      it.kind === "section" ? `s:${it.section.id}` : `q:${it.question.id}`
+    const cur = itemsRef.current;
+    const idx = cur.findIndex(
+      (it) => it.kind === "question" && it.question.id === q.id
     );
-    const idx = baseKeys.indexOf(`q:${q.id}`);
-    const keys =
+    const dupItem: EditorItem = { kind: "question", question: dup };
+    const next =
       idx < 0
-        ? [...baseKeys, `q:${dup.id}`]
-        : [
-            ...baseKeys.slice(0, idx + 1),
-            `q:${dup.id}`,
-            ...baseKeys.slice(idx + 1),
-          ];
-    applyLinearOrder(keys, [], [dup]);
+        ? [...cur, dupItem]
+        : [...cur.slice(0, idx + 1), dupItem, ...cur.slice(idx + 1)];
+    commit(next, { persist: true });
     setSelectedId(dup.id);
   }
 
@@ -425,36 +465,45 @@ export function FormsEditor({
       destructive: true,
     });
     if (!ok) return;
-    setQuestions((qs) => qs.filter((q) => q.id !== id));
-    if (selectedId === id) setSelectedId(null);
+    commit(
+      itemsRef.current.filter(
+        (it) => !(it.kind === "question" && it.question.id === id)
+      )
+    );
+    if (selectedIdRef.current === id) setSelectedId(null);
     await fetch(`/api/questions/${id}`, { method: "DELETE" });
   }
 
   async function deleteSection(id: string) {
     const ok = await confirm({
       title: "Delete this section?",
-      description: "Questions inside the section will move back to the main group.",
+      description:
+        "Its questions stay where they are and join the section above (or the main group).",
       confirmLabel: "Delete section",
       destructive: true,
     });
     if (!ok) return;
-    setSections((ss) => ss.filter((s) => s.id !== id));
-    setQuestions((qs) =>
-      qs.map((q) => (q.sectionId === id ? { ...q, sectionId: null } : q))
-    );
+    // Delete on the server first, then persist the new order — the reorder
+    // walk reparents the orphaned questions to the closest preceding section,
+    // matching exactly what normalize() does locally.
     await fetch(`/api/sections/${id}`, { method: "DELETE" });
+    commit(
+      itemsRef.current.filter(
+        (it) => !(it.kind === "section" && it.section.id === id)
+      ),
+      { persist: true }
+    );
   }
 
   function onDragEnd(e: DragEndEvent) {
     const { active, over } = e;
     if (!over || active.id === over.id) return;
-    const keys = ordered.map((it) =>
-      it.kind === "section" ? `s:${it.section.id}` : `q:${it.question.id}`
-    );
+    const cur = itemsRef.current;
+    const keys = cur.map(keyOf);
     const oldIndex = keys.indexOf(active.id as string);
     const newIndex = keys.indexOf(over.id as string);
     if (oldIndex < 0 || newIndex < 0) return;
-    applyLinearOrder(arrayMove(keys, oldIndex, newIndex));
+    commit(arrayMove(cur, oldIndex, newIndex), { persist: true });
   }
 
   async function onImportFromExam(
@@ -483,19 +532,17 @@ export function FormsEditor({
     };
     setBulkOpen(false);
     // Splice freshly imported records into local state — no full reload.
-    setSections((ss) => [
-      ...ss,
-      ...data.sections.map((s) => ({
+    // Persist the order so the server's sectionIds match the linear walk.
+    const importedItems = buildItems(
+      data.questions.map((q) => serverToClient(q)),
+      data.sections.map((s) => ({
         id: s.id as string,
         order: s.order as number,
         title: s.title as string,
         description: (s.description as string) ?? null,
-      })),
-    ]);
-    setQuestions((qs) => [
-      ...qs,
-      ...data.questions.map((q) => serverToClient(q)),
-    ]);
+      }))
+    );
+    commit([...itemsRef.current, ...importedItems], { persist: true });
     toast({
       kind: "success",
       title: `Imported ${data.importedQuestions} question${
@@ -526,12 +573,16 @@ export function FormsEditor({
       return;
     }
     const { questions: created } = await res.json();
-    setQuestions((qs) => [
-      ...qs,
-      ...(created as unknown[]).map((q) =>
-        serverToClient(q as Record<string, unknown>)
-      ),
-    ]);
+    commit(
+      [
+        ...itemsRef.current,
+        ...(created as unknown[]).map((q) => ({
+          kind: "question" as const,
+          question: serverToClient(q as Record<string, unknown>),
+        })),
+      ],
+      { persist: true }
+    );
     setBulkOpen(false);
     toast({
       kind: "success",
@@ -549,13 +600,11 @@ export function FormsEditor({
         onDragEnd={onDragEnd}
       >
         <SortableContext
-          items={ordered.map((it) =>
-            it.kind === "section" ? `s:${it.section.id}` : `q:${it.question.id}`
-          )}
+          items={items.map(keyOf)}
           strategy={verticalListSortingStrategy}
         >
           <div className="space-y-3 min-w-0">
-            {ordered.length === 0 && (
+            {items.length === 0 && (
               <EmptyState
                 onAddQuestion={(t) => addQuestion(t)}
                 onAddSection={addSection}
@@ -563,11 +612,8 @@ export function FormsEditor({
               />
             )}
 
-            {ordered.map((item) => {
-              const key =
-                item.kind === "section"
-                  ? `s:${item.section.id}`
-                  : `q:${item.question.id}`;
+            {items.map((item) => {
+              const key = keyOf(item);
               return (
               <div
                 key={key}
@@ -969,9 +1015,13 @@ function SelectedBody({
           <Input
             type="number"
             min={0}
-            max={100}
+            max={1000}
+            step={0.5}
             value={question.points}
-            onChange={(e) => onChange({ points: Number(e.target.value) })}
+            onChange={(e) => {
+              const n = Number(e.target.value);
+              onChange({ points: Number.isNaN(n) || n < 0 ? 0 : n });
+            }}
             className="h-8 w-16 text-sm"
           />
           <span className="text-xs text-[var(--fg-muted)]">pts</span>

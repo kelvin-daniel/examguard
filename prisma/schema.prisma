@@ -52,6 +52,7 @@ model Exam {
   showResults      Boolean    @default(false)
   passingScore     Int        @default(50)
   passingScoreMode String     @default("percentage") // percentage | points
+  defaultPoints    Float      @default(1) // default points applied to new questions
   startAt          DateTime?
   endAt            DateTime?
   status           String     @default("draft")
@@ -101,7 +102,7 @@ model Question {
   type           String
   prompt         String
   description    String?   // Helper text shown under prompt
-  points         Int       @default(1)
+  points         Float     @default(1)
   required       Boolean   @default(true)
   shuffleOptions Boolean?  // null = inherit from exam-level setting
   options        String?

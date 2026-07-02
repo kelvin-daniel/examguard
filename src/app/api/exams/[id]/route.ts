@@ -12,6 +12,7 @@ const patchSchema = z.object({
   showResults: z.boolean().optional(),
   passingScore: z.number().int().min(0).max(10000).optional(),
   passingScoreMode: z.enum(["percentage", "points"]).optional(),
+  defaultPoints: z.number().min(0).max(1000).optional(),
   startAt: z.string().datetime().nullable().optional(),
   endAt: z.string().datetime().nullable().optional(),
   status: z.enum(["draft", "scheduled", "live", "ended"]).optional(),

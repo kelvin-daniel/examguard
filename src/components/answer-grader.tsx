@@ -1,9 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useToast } from "@/components/ui/toast";
 import { Check, Edit2 } from "lucide-react";
 
 type Props = {
@@ -23,6 +25,8 @@ export function AnswerGrader({
   initialPointsEarned,
   initialIsCorrect,
 }: Props) {
+  const router = useRouter();
+  const { toast } = useToast();
   const [pointsEarned, setPointsEarned] = useState<number | null>(
     initialPointsEarned
   );
@@ -43,17 +47,37 @@ export function AnswerGrader({
     const n = Number(draft);
     if (Number.isNaN(n) || n < 0) return;
     setSaving(true);
-    const res = await fetch(`/api/answers/${answerId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ pointsEarned: n }),
-    });
-    setSaving(false);
-    if (!res.ok) return;
-    const data = await res.json();
-    setPointsEarned(data.answer.pointsEarned);
-    setIsCorrect(data.answer.isCorrect);
-    setEditing(false);
+    try {
+      const res = await fetch(`/api/answers/${answerId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pointsEarned: n }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        toast({
+          kind: "error",
+          title: "Grade didn't save",
+          description: data.error ?? `Server error (${res.status}). Try again.`,
+        });
+        return;
+      }
+      const data = await res.json();
+      setPointsEarned(data.answer.pointsEarned);
+      setIsCorrect(data.answer.isCorrect);
+      setEditing(false);
+      // Refresh the server-rendered page so the attempt's total score at the
+      // top (and the results table on navigation) reflects the new grade.
+      router.refresh();
+    } catch {
+      toast({
+        kind: "error",
+        title: "Grade didn't save",
+        description: "Network error — check your connection and retry.",
+      });
+    } finally {
+      setSaving(false);
+    }
   }
 
   if (editing) {
@@ -63,6 +87,7 @@ export function AnswerGrader({
           type="number"
           min={0}
           max={questionPoints}
+          step={0.5}
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           className="h-8 w-16 text-sm text-center"

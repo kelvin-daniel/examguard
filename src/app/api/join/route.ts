@@ -22,7 +22,13 @@ export async function POST(req: Request) {
   const code = parsed.data.code.toUpperCase();
   const exam = await prisma.exam.findUnique({
     where: { code },
-    include: { questions: { select: { id: true } } },
+    include: {
+      questions: {
+        select: { id: true, sectionId: true, type: true },
+        orderBy: { order: "asc" },
+      },
+      sections: { select: { id: true }, orderBy: { order: "asc" } },
+    },
   });
   if (!exam) return NextResponse.json({ error: "Exam not found" }, { status: 404 });
   if (exam.status === "draft")
@@ -85,9 +91,38 @@ export async function POST(req: Request) {
     h.get("x-real-ip") ??
     null;
 
-  const order = exam.shuffleQuestions
-    ? shuffle(exam.questions.map((q) => q.id))
-    : exam.questions.map((q) => q.id);
+  // Build the served question order. Sections stay in place — shuffling only
+  // happens WITHIN each section (and within the unsectioned group), and
+  // reading passages are pinned to their slots so their questions still
+  // follow them.
+  type QRow = { id: string; sectionId: string | null; type: string };
+  const orderWithinGroup = (qs: QRow[], doShuffle: boolean): string[] => {
+    if (!doShuffle) return qs.map((q) => q.id);
+    const slots: number[] = [];
+    const movable: string[] = [];
+    qs.forEach((q, i) => {
+      if (q.type !== "passage") {
+        slots.push(i);
+        movable.push(q.id);
+      }
+    });
+    const shuffledMovable = shuffle(movable);
+    const out = qs.map((q) => q.id);
+    slots.forEach((slot, j) => {
+      out[slot] = shuffledMovable[j];
+    });
+    return out;
+  };
+
+  const groups: QRow[][] = [
+    exam.questions.filter((q) => !q.sectionId),
+    ...exam.sections.map((s) =>
+      exam.questions.filter((q) => q.sectionId === s.id)
+    ),
+  ];
+  const order = groups.flatMap((g) =>
+    orderWithinGroup(g, exam.shuffleQuestions)
+  );
 
   const attempt = await prisma.attempt.create({
     data: {

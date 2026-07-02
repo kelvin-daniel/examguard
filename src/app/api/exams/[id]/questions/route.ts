@@ -21,7 +21,7 @@ const questionSchema = z.object({
   type: z.enum(TYPES),
   prompt: z.string().min(1).max(4000),
   description: z.string().max(2000).optional().nullable(),
-  points: z.number().int().min(0).max(100).default(1),
+  points: z.number().min(0).max(1000).default(1),
   required: z.boolean().optional(),
   shuffleOptions: z.boolean().optional().nullable(),
   options: z.array(z.string()).optional(),
