@@ -24,6 +24,9 @@ automatic screenshot evidence on every flagged event.
   preserves screenshot as proof
 - **Question performance** — per-question percent correct, average time and
   times served, so the questions a class missed are obvious
+- **In-exam chat** — student asks about a question without leaving the locked
+  window; teacher replies from the monitor, or sends one announcement to the
+  whole class
 - **Accommodations** — per-student extra time, granted mid-exam, reaching the
   student without a reload
 - **Admin approval** — anyone can register, admin approves before access
@@ -179,7 +182,7 @@ Then `vercel --prod` to deploy. Vercel rebuilds on every `git push` from then on
 - [x] Question pools (random subset per student)
 - [x] Per-student extra time / accommodations
 - [x] Per-question item analysis on the results page
-- [ ] Teacher ↔ student chat during an exam
+- [x] Teacher ↔ student chat during an exam (1:1 + class broadcast)
 - [ ] Conditional section branching ("if Q3 = Yes go to section 3")
 - [ ] Multiple-choice grids (matrix of radios / checkboxes)
 - [ ] Multi-tenant per-school subdomains

@@ -145,6 +145,7 @@ export default async function ExamAttemptPage({
         blockTabSwitch: attempt.exam.blockTabSwitch,
         allowCalculator: attempt.exam.allowCalculator,
         allowScratchpad: attempt.exam.allowScratchpad,
+        allowChat: attempt.exam.allowChat,
       }}
     />
   );

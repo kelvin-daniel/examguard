@@ -5,12 +5,15 @@ import { useEffect, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
+import { ChatThreadModal, BroadcastModal } from "@/components/monitor-chat";
 import {
   AlertTriangle,
   Bell,
   CheckCircle2,
   Clock,
   Eye,
+  Megaphone,
+  MessageCircle,
   PauseCircle,
   ShieldX,
   X,
@@ -28,6 +31,7 @@ type AttemptRow = {
   answerCount: number;
   violationCount: number;
   extraTimeMs: number;
+  unreadMessages: number;
   recentViolations: {
     id: string;
     type: string;
@@ -80,6 +84,10 @@ export function MonitorClient({ examId }: { examId: string }) {
   const [attempts, setAttempts] = useState<AttemptRow[] | null>(null);
   const [pending, setPending] = useState<PendingViolation[]>([]);
   const [reviewing, setReviewing] = useState<PendingViolation | null>(null);
+  const [chatWith, setChatWith] = useState<{ id: string; name: string } | null>(
+    null
+  );
+  const [broadcasting, setBroadcasting] = useState(false);
   const [resolving, setResolving] = useState(false);
   const seenIds = useRef<Set<string>>(new Set());
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -191,6 +199,17 @@ export function MonitorClient({ examId }: { examId: string }) {
         </div>
       )}
 
+      <ChatThreadModal
+        attemptId={chatWith?.id ?? null}
+        studentName={chatWith?.name ?? ""}
+        onClose={() => setChatWith(null)}
+      />
+      <BroadcastModal
+        examId={examId}
+        open={broadcasting}
+        onClose={() => setBroadcasting(false)}
+      />
+
       <ReviewModal
         violation={reviewing}
         onClose={() => setReviewing(null)}
@@ -204,13 +223,26 @@ export function MonitorClient({ examId }: { examId: string }) {
           <h2 className="text-lg font-semibold text-[var(--fg)]">In progress</h2>
           <span className="h-2 w-2 rounded-full bg-[#10b981] live-dot" />
           <span className="text-sm text-[var(--fg-muted)]">{live.length}</span>
+          <Button
+            variant="outline"
+            size="sm"
+            className="ml-auto"
+            onClick={() => setBroadcasting(true)}
+            disabled={live.length === 0}
+          >
+            <Megaphone className="h-4 w-4" /> Announce to all
+          </Button>
         </div>
         {live.length === 0 ? (
           <EmptyRow label="No one is taking the exam right now." />
         ) : (
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {live.map((a) => (
-              <AttemptCard key={a.id} a={a} />
+              <AttemptCard
+                key={a.id}
+                a={a}
+                onChat={() => setChatWith({ id: a.id, name: a.studentName })}
+              />
             ))}
           </div>
         )}
@@ -226,7 +258,11 @@ export function MonitorClient({ examId }: { examId: string }) {
         ) : (
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {done.map((a) => (
-              <AttemptCard key={a.id} a={a} />
+              <AttemptCard
+                key={a.id}
+                a={a}
+                onChat={() => setChatWith({ id: a.id, name: a.studentName })}
+              />
             ))}
           </div>
         )}
@@ -337,7 +373,7 @@ function ExtraTimeControl({
   );
 }
 
-function AttemptCard({ a }: { a: AttemptRow }) {
+function AttemptCard({ a, onChat }: { a: AttemptRow; onChat: () => void }) {
   const flaggy = a.violationCount > 2;
   const isPaused = a.status === "paused";
   const isTerminated = a.status === "terminated";
@@ -427,7 +463,27 @@ function AttemptCard({ a }: { a: AttemptRow }) {
       </div>
     </Link>
     {(a.status === "in_progress" || a.status === "paused") && (
-      <ExtraTimeControl attemptId={a.id} granted={a.extraTimeMs} />
+      <>
+        <div className="px-4 pb-2">
+          <button
+            type="button"
+            onClick={onChat}
+            className={`w-full h-9 rounded-xl text-sm font-medium flex items-center justify-center gap-1.5 border transition-colors ${
+              a.unreadMessages > 0
+                ? "border-[#2563eb] bg-[#dbeafe] text-[#1d4ed8] dark:bg-[#1e3a8a]/40 dark:text-[#93c5fd]"
+                : "border-[var(--border-strong)] bg-white/70 dark:bg-white/5 text-[var(--fg-muted)] hover:border-[var(--primary)] hover:text-[var(--fg)]"
+            }`}
+          >
+            <MessageCircle className="h-4 w-4" />
+            {a.unreadMessages > 0
+              ? `${a.unreadMessages} new message${
+                  a.unreadMessages === 1 ? "" : "s"
+                }`
+              : "Message"}
+          </button>
+        </div>
+        <ExtraTimeControl attemptId={a.id} granted={a.extraTimeMs} />
+      </>
     )}
     </div>
   );

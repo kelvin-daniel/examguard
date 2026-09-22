@@ -13,13 +13,16 @@ export function ExamTools({
   attemptId,
   calculator,
   scratchpad,
+  children,
 }: {
   attemptId: string;
   calculator: boolean;
   scratchpad: boolean;
+  /** Extra tools sharing this dock — the chat button and its panel. */
+  children?: React.ReactNode;
 }) {
   const [open, setOpen] = useState<"calc" | "pad" | null>(null);
-  if (!calculator && !scratchpad) return null;
+  if (!calculator && !scratchpad && !children) return null;
 
   return (
     <div className="fixed bottom-24 left-4 z-30 flex flex-col items-start gap-2">
@@ -27,7 +30,8 @@ export function ExamTools({
       {open === "pad" && (
         <ScratchpadPanel attemptId={attemptId} onClose={() => setOpen(null)} />
       )}
-      <div className="flex gap-2">
+      <div className="flex items-end gap-2">
+        {children}
         {calculator && (
           <button
             onClick={() => setOpen(open === "calc" ? null : "calc")}

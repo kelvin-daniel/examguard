@@ -68,6 +68,7 @@ model Exam {
   autoSubmitOnViolations  Int     @default(0) // 0 = off, otherwise count
   allowCalculator         Boolean @default(false)
   allowScratchpad         Boolean @default(false)
+  allowChat               Boolean @default(true) // student can message the teacher
 
   // JSON array of extra sign-in fields collected before the exam starts.
   // null/empty = just the student's full name. Each: { key, label, type, required, options? }
@@ -78,6 +79,7 @@ model Exam {
   sections         Section[]
   questions        Question[]
   attempts         Attempt[]
+  messages         Message[]
   createdAt        DateTime   @default(now())
   updatedAt        DateTime   @updatedAt
 }
@@ -133,8 +135,35 @@ model Attempt {
   extraTimeMs   Int         @default(0) // teacher-granted accommodation time
   ipAddress     String?
   userAgent     String?
+  // Chat read marks. One timestamp per side beats a per-message read flag:
+  // it makes a broadcast (one row, many readers) count as unread for each
+  // student without a row per recipient.
+  chatReadAt        DateTime? // student last opened the chat panel
+  teacherChatReadAt DateTime? // teacher last opened this student's thread
   answers       Answer[]
   violations    Violation[]
+  messages      Message[]
+}
+
+/**
+ * In-exam chat between teacher and student.
+ *
+ * `attemptId` null means a broadcast to everyone sitting that exam — one row
+ * rather than one per student, which keeps a class-wide announcement to a
+ * single write on Turso.
+ */
+model Message {
+  id          String   @id @default(cuid())
+  examId      String
+  exam        Exam     @relation(fields: [examId], references: [id], onDelete: Cascade)
+  attemptId   String?
+  attempt     Attempt? @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  fromTeacher Boolean
+  body        String
+  createdAt   DateTime @default(now())
+
+  @@index([examId, createdAt])
+  @@index([attemptId, createdAt])
 }
 
 model Answer {

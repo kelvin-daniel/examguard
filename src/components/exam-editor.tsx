@@ -50,6 +50,7 @@ type ExamShape = {
   autoSubmitOnViolations: number;
   allowCalculator: boolean;
   allowScratchpad: boolean;
+  allowChat: boolean;
   collectFields: CollectField[];
 };
 
@@ -111,6 +112,7 @@ export function ExamEditor({
         autoSubmitOnViolations: e.autoSubmitOnViolations,
         allowCalculator: e.allowCalculator,
         allowScratchpad: e.allowScratchpad,
+        allowChat: e.allowChat,
         collectFields: e.collectFields,
       }),
     });
@@ -594,6 +596,12 @@ export function ExamEditor({
               description="A note panel for working out answers — not graded."
               checked={e.allowScratchpad}
               onChange={(v) => setE((s) => ({ ...s, allowScratchpad: v }))}
+            />
+            <SwitchRow
+              label="Let students message you"
+              description="Students can ask about a question without leaving the locked exam. You can always message them, even with this off."
+              checked={e.allowChat}
+              onChange={(v) => setE((s) => ({ ...s, allowChat: v }))}
             />
           </fieldset>
 

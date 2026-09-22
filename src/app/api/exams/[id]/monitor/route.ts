@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
+import { unreadForTeacher } from "@/lib/chat";
 
 export async function GET(
   _req: Request,
@@ -33,6 +34,10 @@ export async function GET(
     },
   });
 
+  // Unread student messages per attempt, resolved in one query so the poll
+  // doesn't fan out into a count per student.
+  const unread = await unreadForTeacher(id, attempts);
+
   // Pending violations across all attempts of this exam — teacher needs to review
   const pending = await prisma.violation.findMany({
     where: {
@@ -60,6 +65,7 @@ export async function GET(
       answerCount: a._count.answers,
       violationCount: a._count.violations,
       extraTimeMs: a.extraTimeMs,
+      unreadMessages: unread[a.id] ?? 0,
       recentViolations: a.violations.map((v) => ({
         id: v.id,
         type: v.type,

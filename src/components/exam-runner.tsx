@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { QuestionInput } from "@/components/question-input";
 import { useConfirm } from "@/components/ui/confirm";
 import { ExamTools } from "@/components/exam-tools";
+import { ExamChat } from "@/components/exam-chat";
 import {
   BookOpen,
   Clock,
@@ -38,6 +39,7 @@ type RunnerQuestion = {
 type RunnerSettings = EnforcementSettings & {
   allowCalculator: boolean;
   allowScratchpad: boolean;
+  allowChat: boolean;
 };
 
 type RunnerSection = {
@@ -156,6 +158,8 @@ export function ExamRunner({
   // student without a reload. Deliberately infrequent — the countdown itself
   // is local, this only corrects it.
   const [timeGranted, setTimeGranted] = useState(0);
+  const [unreadMessages, setUnreadMessages] = useState(0);
+  const [chatOpen, setChatOpen] = useState(false);
   useEffect(() => {
     if (!started || paused || needsResume) return;
     let alive = true;
@@ -166,8 +170,14 @@ export function ExamRunner({
         const data = (await res.json()) as {
           status: string;
           deadline?: string;
+          unreadMessages?: number;
         };
-        if (!alive || !data.deadline) return;
+        if (!alive) return;
+        // Chat's unread badge rides along here rather than polling separately.
+        if (typeof data.unreadMessages === "number" && !chatOpen) {
+          setUnreadMessages(data.unreadMessages);
+        }
+        if (!data.deadline) return;
         if (data.status === "terminated" || data.status === "submitted") {
           router.refresh();
           return;
@@ -184,12 +194,13 @@ export function ExamRunner({
         // offline — keep counting down locally, we'll re-sync later
       }
     };
+    void sync();
     const interval = setInterval(sync, 20_000);
     return () => {
       alive = false;
       clearInterval(interval);
     };
-  }, [started, paused, needsResume, attemptId, router]);
+  }, [started, paused, needsResume, attemptId, router, chatOpen]);
 
   // Let the extra-time banner fade itself out.
   useEffect(() => {
@@ -650,7 +661,17 @@ export function ExamRunner({
           attemptId={attemptId}
           calculator={settings.allowCalculator}
           scratchpad={settings.allowScratchpad}
-        />
+        >
+          <ExamChat
+            attemptId={attemptId}
+            unread={unreadMessages}
+            canSend={settings.allowChat}
+            onOpenChange={(o) => {
+              setChatOpen(o);
+              if (o) setUnreadMessages(0);
+            }}
+          />
+        </ExamTools>
       )}
     </div>
   );

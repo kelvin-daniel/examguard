@@ -74,6 +74,7 @@ export default async function ExamEditPage({
         autoSubmitOnViolations: exam.autoSubmitOnViolations,
         allowCalculator: exam.allowCalculator,
         allowScratchpad: exam.allowScratchpad,
+        allowChat: exam.allowChat,
         collectFields: parseCollectFields(exam.collectFields),
       }}
       initialQuestions={questions}

@@ -14,6 +14,7 @@ const patchSchema = z.object({
   passingScoreMode: z.enum(["percentage", "points"]).optional(),
   defaultPoints: z.number().min(0).max(1000).optional(),
   poolSize: z.number().int().min(1).max(500).nullable().optional(),
+  allowChat: z.boolean().optional(),
   startAt: z.string().datetime().nullable().optional(),
   endAt: z.string().datetime().nullable().optional(),
   status: z.enum(["draft", "scheduled", "live", "ended"]).optional(),

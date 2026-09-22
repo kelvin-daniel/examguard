@@ -76,6 +76,7 @@ const CREATE_TABLES = [
     "autoSubmitOnViolations" INTEGER NOT NULL DEFAULT 0,
     "allowCalculator" BOOLEAN NOT NULL DEFAULT false,
     "allowScratchpad" BOOLEAN NOT NULL DEFAULT false,
+    "allowChat" BOOLEAN NOT NULL DEFAULT true,
     "collectFields" TEXT,
     "defaultPoints" REAL NOT NULL DEFAULT 1,
     "poolSize" INTEGER,
@@ -124,6 +125,8 @@ const CREATE_TABLES = [
     "pausedAt" DATETIME,
     "pausedMs" INTEGER NOT NULL DEFAULT 0,
     "extraTimeMs" INTEGER NOT NULL DEFAULT 0,
+    "chatReadAt" DATETIME,
+    "teacherChatReadAt" DATETIME,
     "ipAddress" TEXT,
     "userAgent" TEXT
   )`,
@@ -138,6 +141,16 @@ const CREATE_TABLES = [
     "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
   )`,
   `CREATE UNIQUE INDEX IF NOT EXISTS "Answer_attemptId_questionId_key" ON "Answer"("attemptId", "questionId")`,
+  `CREATE TABLE IF NOT EXISTS "Message" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "examId" TEXT NOT NULL,
+    "attemptId" TEXT,
+    "fromTeacher" BOOLEAN NOT NULL,
+    "body" TEXT NOT NULL,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+  )`,
+  `CREATE INDEX IF NOT EXISTS "Message_examId_createdAt_idx" ON "Message"("examId", "createdAt")`,
+  `CREATE INDEX IF NOT EXISTS "Message_attemptId_createdAt_idx" ON "Message"("attemptId", "createdAt")`,
   `CREATE TABLE IF NOT EXISTS "Violation" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "attemptId" TEXT NOT NULL,
@@ -186,6 +199,9 @@ const EXPECTED_COLUMNS = [
   ["Attempt", "pausedAt", `"pausedAt" DATETIME`],
   ["Attempt", "pausedMs", `"pausedMs" INTEGER NOT NULL DEFAULT 0`],
   ["Attempt", "extraTimeMs", `"extraTimeMs" INTEGER NOT NULL DEFAULT 0`],
+  ["Attempt", "chatReadAt", `"chatReadAt" DATETIME`],
+  ["Attempt", "teacherChatReadAt", `"teacherChatReadAt" DATETIME`],
+  ["Exam", "allowChat", `"allowChat" BOOLEAN NOT NULL DEFAULT true`],
   ["Violation", "pending", `"pending" BOOLEAN NOT NULL DEFAULT false`],
   ["Violation", "resolution", `"resolution" TEXT`],
   ["Violation", "resolvedAt", `"resolvedAt" DATETIME`],
