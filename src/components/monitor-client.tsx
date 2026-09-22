@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/components/ui/toast";
 import {
   AlertTriangle,
   Bell,
@@ -26,6 +27,7 @@ type AttemptRow = {
   maxScore: number | null;
   answerCount: number;
   violationCount: number;
+  extraTimeMs: number;
   recentViolations: {
     id: string;
     type: string;
@@ -241,14 +243,107 @@ function EmptyRow({ label }: { label: string }) {
   );
 }
 
+/**
+ * Per-student extra time. Lives outside the card's <Link> so the buttons
+ * don't nest inside an anchor. The student's runner re-syncs its deadline
+ * from the server, so a grant reaches them without a reload.
+ */
+function ExtraTimeControl({
+  attemptId,
+  granted,
+}: {
+  attemptId: string;
+  granted: number;
+}) {
+  const [saving, setSaving] = useState<number | null>(null);
+  const [total, setTotal] = useState(granted);
+  const { toast } = useToast();
+
+  // Keep in step with the 3s monitor poll unless we're mid-request.
+  useEffect(() => {
+    if (saving === null) setTotal(granted);
+  }, [granted, saving]);
+
+  async function grant(body: { minutes: number } | { setMinutes: number }) {
+    setSaving(1);
+    try {
+      const res = await fetch(`/api/attempts/${attemptId}/extra-time`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast({
+          kind: "error",
+          title: "Couldn't change the time",
+          description: data.error ?? "Please try again.",
+        });
+        return;
+      }
+      setTotal(data.extraTimeMs ?? 0);
+      toast({
+        kind: "success",
+        title:
+          data.extraTimeMs > 0
+            ? `${Math.round(data.extraTimeMs / 60_000)} min extra time`
+            : "Extra time removed",
+      });
+    } catch {
+      toast({
+        kind: "error",
+        title: "Couldn't change the time",
+        description: "Check your connection and try again.",
+      });
+    } finally {
+      setSaving(null);
+    }
+  }
+
+  return (
+    <div className="px-4 pb-3 pt-2 border-t border-[var(--border)] flex items-center gap-1.5 flex-wrap">
+      <span className="text-xs text-[var(--fg-muted)] mr-auto flex items-center gap-1">
+        <Clock className="h-3 w-3" />
+        {total > 0 ? (
+          <span className="font-medium text-[#047857]">
+            +{Math.round(total / 60_000)} min granted
+          </span>
+        ) : (
+          "Extra time"
+        )}
+      </span>
+      {[5, 10].map((m) => (
+        <button
+          key={m}
+          type="button"
+          onClick={() => grant({ minutes: m })}
+          disabled={saving !== null}
+          className="h-7 px-2 rounded-lg text-xs font-medium border border-[var(--border-strong)] bg-white/70 dark:bg-white/5 text-[var(--fg)] hover:border-[var(--primary)] disabled:opacity-50"
+        >
+          +{m}
+        </button>
+      ))}
+      {total > 0 && (
+        <button
+          type="button"
+          onClick={() => grant({ setMinutes: 0 })}
+          disabled={saving !== null}
+          className="h-7 px-2 rounded-lg text-xs font-medium text-[var(--fg-muted)] hover:text-[#dc2626] disabled:opacity-50"
+        >
+          Clear
+        </button>
+      )}
+    </div>
+  );
+}
+
 function AttemptCard({ a }: { a: AttemptRow }) {
   const flaggy = a.violationCount > 2;
   const isPaused = a.status === "paused";
   const isTerminated = a.status === "terminated";
   return (
-    <Link
-      href={`/dashboard/exams/attempt/${a.id}`}
-      className={`block glass rounded-2xl p-4 hover:-translate-y-1 hover:shadow-[0_24px_48px_-12px_rgba(15,23,42,0.10)] transition-all ${
+    <div
+      className={`glass rounded-2xl overflow-hidden transition-all hover:-translate-y-1 hover:shadow-[0_24px_48px_-12px_rgba(15,23,42,0.10)] ${
         isPaused
           ? "ring-2 ring-[#fbbf24]"
           : isTerminated
@@ -257,6 +352,10 @@ function AttemptCard({ a }: { a: AttemptRow }) {
           ? "ring-1 ring-[#fca5a5]/60"
           : ""
       }`}
+    >
+    <Link
+      href={`/dashboard/exams/attempt/${a.id}`}
+      className="block p-4"
     >
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
@@ -327,6 +426,10 @@ function AttemptCard({ a }: { a: AttemptRow }) {
         <Eye className="h-3.5 w-3.5" /> View details
       </div>
     </Link>
+    {(a.status === "in_progress" || a.status === "paused") && (
+      <ExtraTimeControl attemptId={a.id} granted={a.extraTimeMs} />
+    )}
+    </div>
   );
 }
 

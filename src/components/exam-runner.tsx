@@ -151,6 +151,53 @@ export function ExamRunner({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [started, paused, needsResume, deadline]);
 
+  // Re-sync the deadline from the server while the exam is running, so a
+  // teacher granting extra time (or ending the exam early) reaches the
+  // student without a reload. Deliberately infrequent — the countdown itself
+  // is local, this only corrects it.
+  const [timeGranted, setTimeGranted] = useState(0);
+  useEffect(() => {
+    if (!started || paused || needsResume) return;
+    let alive = true;
+    const sync = async () => {
+      try {
+        const res = await fetch(`/api/attempts/${attemptId}/status`);
+        if (!res.ok || !alive) return;
+        const data = (await res.json()) as {
+          status: string;
+          deadline?: string;
+        };
+        if (!alive || !data.deadline) return;
+        if (data.status === "terminated" || data.status === "submitted") {
+          router.refresh();
+          return;
+        }
+        setDeadline((prev) => {
+          if (prev === data.deadline) return prev;
+          const gained =
+            new Date(data.deadline!).getTime() - new Date(prev).getTime();
+          // Only celebrate a real increase; shrinking is silent.
+          if (gained > 30_000) setTimeGranted(gained);
+          return data.deadline!;
+        });
+      } catch {
+        // offline — keep counting down locally, we'll re-sync later
+      }
+    };
+    const interval = setInterval(sync, 20_000);
+    return () => {
+      alive = false;
+      clearInterval(interval);
+    };
+  }, [started, paused, needsResume, attemptId, router]);
+
+  // Let the extra-time banner fade itself out.
+  useEffect(() => {
+    if (!timeGranted) return;
+    const t = setTimeout(() => setTimeGranted(0), 8000);
+    return () => clearTimeout(t);
+  }, [timeGranted]);
+
   // Poll attempt status while paused — teacher decision unblocks us
   useEffect(() => {
     if (!paused) return;
@@ -439,6 +486,16 @@ export function ExamRunner({
           onReFullscreen={enterFullscreen}
           violationCount={violations.length}
         />
+
+        {timeGranted > 0 && (
+          <div className="max-w-3xl w-full mx-auto px-4 pt-3">
+            <div className="rounded-xl bg-[#d1fae5] border border-[#10b981] dark:bg-[#064e3b] dark:border-[#047857] px-3 py-2 text-sm font-medium text-[#047857] dark:text-[#6ee7b7] flex items-center gap-2 animate-in">
+              <Clock className="h-4 w-4" />
+              Your teacher added {Math.round(timeGranted / 60_000)} more minute
+              {Math.round(timeGranted / 60_000) === 1 ? "" : "s"}.
+            </div>
+          </div>
+        )}
 
         <div className="max-w-3xl w-full mx-auto px-4 py-5 sm:py-7">
           {currentSection && (

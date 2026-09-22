@@ -123,6 +123,7 @@ const CREATE_TABLES = [
     "pausedReason" TEXT,
     "pausedAt" DATETIME,
     "pausedMs" INTEGER NOT NULL DEFAULT 0,
+    "extraTimeMs" INTEGER NOT NULL DEFAULT 0,
     "ipAddress" TEXT,
     "userAgent" TEXT
   )`,
@@ -184,6 +185,7 @@ const EXPECTED_COLUMNS = [
   ["Attempt", "pausedReason", `"pausedReason" TEXT`],
   ["Attempt", "pausedAt", `"pausedAt" DATETIME`],
   ["Attempt", "pausedMs", `"pausedMs" INTEGER NOT NULL DEFAULT 0`],
+  ["Attempt", "extraTimeMs", `"extraTimeMs" INTEGER NOT NULL DEFAULT 0`],
   ["Violation", "pending", `"pending" BOOLEAN NOT NULL DEFAULT false`],
   ["Violation", "resolution", `"resolution" TEXT`],
   ["Violation", "resolvedAt", `"resolvedAt" DATETIME`],

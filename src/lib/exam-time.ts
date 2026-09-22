@@ -6,9 +6,19 @@
  * is still open) extends the deadline in real time until the teacher decides.
  * Net effect: a student paused with 5 minutes left still has 5 minutes after
  * being allowed to continue.
+ *
+ * `extraTimeMs` is the teacher-granted accommodation (extra time for a
+ * documented need, or making up for a technical problem). It is separate
+ * from pause credit so the two can be reasoned about — and audited —
+ * independently.
  */
 export function attemptDeadlineMs(
-  attempt: { startedAt: Date; pausedMs: number; pausedAt: Date | null },
+  attempt: {
+    startedAt: Date;
+    pausedMs: number;
+    pausedAt: Date | null;
+    extraTimeMs?: number;
+  },
   durationMinutes: number
 ): number {
   const openPause = attempt.pausedAt
@@ -18,6 +28,7 @@ export function attemptDeadlineMs(
     attempt.startedAt.getTime() +
     durationMinutes * 60_000 +
     attempt.pausedMs +
-    openPause
+    openPause +
+    (attempt.extraTimeMs ?? 0)
   );
 }

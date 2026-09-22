@@ -20,6 +20,7 @@ export async function GET(
       startedAt: true,
       pausedAt: true,
       pausedMs: true,
+      extraTimeMs: true,
       exam: { select: { durationMinutes: true } },
     },
   });
@@ -29,6 +30,7 @@ export async function GET(
     status: attempt.status,
     pausedReason: attempt.pausedReason,
     submittedAt: attempt.submittedAt?.toISOString() ?? null,
+    extraTimeMs: attempt.extraTimeMs,
     deadline: new Date(
       attemptDeadlineMs(attempt, attempt.exam.durationMinutes)
     ).toISOString(),

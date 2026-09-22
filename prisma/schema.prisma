@@ -130,6 +130,7 @@ model Attempt {
   pausedReason  String?
   pausedAt      DateTime? // set while paused awaiting teacher review
   pausedMs      Int         @default(0) // accumulated pause time; extends the deadline
+  extraTimeMs   Int         @default(0) // teacher-granted accommodation time
   ipAddress     String?
   userAgent     String?
   answers       Answer[]

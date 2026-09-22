@@ -59,6 +59,7 @@ export async function GET(
       maxScore: a.maxScore,
       answerCount: a._count.answers,
       violationCount: a._count.violations,
+      extraTimeMs: a.extraTimeMs,
       recentViolations: a.violations.map((v) => ({
         id: v.id,
         type: v.type,
