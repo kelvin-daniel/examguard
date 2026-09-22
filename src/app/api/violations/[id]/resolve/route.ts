@@ -42,52 +42,51 @@ export async function POST(
       ? Date.now() - violation.attempt.pausedAt.getTime()
       : 0;
 
-    // Discard evidence to save storage; mark resolved; resume attempt
-    await prisma.$transaction([
-      prisma.violation.update({
-        where: { id },
-        data: {
-          pending: false,
-          resolution: "allowed",
-          resolvedAt: new Date(),
-          evidence: null,
-        },
-      }),
-      prisma.attempt.update({
+    // Discard evidence to save storage; mark resolved; resume attempt.
+    // Sequential writes: $transaction arrays can fail to commit on remote
+    // libsql (Turso), which would leave the student paused forever.
+    // The attempt resume goes FIRST so a mid-way failure can't strand a
+    // paused student behind an already-resolved violation.
+    if (violation.attempt.status === "paused") {
+      await prisma.attempt.update({
         where: { id: violation.attemptId },
-        data:
-          violation.attempt.status === "paused"
-            ? {
-                status: "in_progress",
-                pausedReason: null,
-                pausedAt: null,
-                pausedMs: { increment: pauseCredit },
-              }
-            : {},
-      }),
-    ]);
+        data: {
+          status: "in_progress",
+          pausedReason: null,
+          pausedAt: null,
+          pausedMs: { increment: pauseCredit },
+        },
+      });
+    }
+    await prisma.violation.update({
+      where: { id },
+      data: {
+        pending: false,
+        resolution: "allowed",
+        resolvedAt: new Date(),
+        evidence: null,
+      },
+    });
     return NextResponse.json({ ok: true, action: "allow" });
   }
 
   // terminate — keep evidence as proof of fair termination
-  await prisma.$transaction([
-    prisma.violation.update({
-      where: { id },
-      data: {
-        pending: false,
-        resolution: "terminated",
-        resolvedAt: new Date(),
-      },
-    }),
-    prisma.attempt.update({
-      where: { id: violation.attemptId },
-      data: {
-        status: "terminated",
-        submittedAt: new Date(),
-        pausedReason: null,
-        pausedAt: null,
-      },
-    }),
-  ]);
+  await prisma.attempt.update({
+    where: { id: violation.attemptId },
+    data: {
+      status: "terminated",
+      submittedAt: new Date(),
+      pausedReason: null,
+      pausedAt: null,
+    },
+  });
+  await prisma.violation.update({
+    where: { id },
+    data: {
+      pending: false,
+      resolution: "terminated",
+      resolvedAt: new Date(),
+    },
+  });
   return NextResponse.json({ ok: true, action: "terminate" });
 }

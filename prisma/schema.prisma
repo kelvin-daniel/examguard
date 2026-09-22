@@ -53,6 +53,7 @@ model Exam {
   passingScore     Int        @default(50)
   passingScoreMode String     @default("percentage") // percentage | points
   defaultPoints    Float      @default(1) // default points applied to new questions
+  poolSize         Int?       // ask N random unsectioned questions per student (null = all)
   startAt          DateTime?
   endAt            DateTime?
   status           String     @default("draft")
@@ -88,6 +89,7 @@ model Section {
   order       Int
   title       String
   description String?
+  poolSize    Int?       // ask N random questions from this section per student (null = all)
   questions   Question[]
 }
 
@@ -143,6 +145,7 @@ model Answer {
   response     String
   isCorrect    Boolean?
   pointsEarned Float?
+  timeSpentMs  Int      @default(0) // visible time on the question before this response
   updatedAt    DateTime @updatedAt
 
   @@unique([attemptId, questionId])

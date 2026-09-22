@@ -14,14 +14,47 @@ export function generateExamCode(length = 6): string {
   return out;
 }
 
+/** Hash a string into a well-distributed 32-bit seed (xmur3). */
+function hashSeed(str: string): number {
+  let h = 1779033703 ^ str.length;
+  for (let i = 0; i < str.length; i++) {
+    h = Math.imul(h ^ str.charCodeAt(i), 3432918353);
+    h = (h << 13) | (h >>> 19);
+  }
+  h = Math.imul(h ^ (h >>> 16), 2246822507);
+  h = Math.imul(h ^ (h >>> 13), 3266489909);
+  return (h ^= h >>> 16) >>> 0;
+}
+
+/** mulberry32 — small, fast, statistically sound 32-bit PRNG. */
+function mulberry32(seed: number): () => number {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/**
+ * Fisher-Yates shuffle.
+ *
+ * Randomization is load-bearing for anti-cheat (per-student question order,
+ * option order, and question pools), so the generator quality matters: the
+ * previous LCG produced only a handful of distinct permutations, meaning
+ * many students received identical orders and identical pool subsets.
+ *
+ * Pass `seed` when the same input must reproduce the same order on every
+ * render — per-attempt option order is re-derived on each page load from
+ * `attemptId + questionId`. Omit it for genuinely random draws.
+ */
 export function shuffle<T>(arr: T[], seed?: string): T[] {
   const a = [...arr];
-  let s = seed
-    ? [...seed].reduce((acc, c) => acc + c.charCodeAt(0), 0)
-    : Date.now();
+  const rand = seed === undefined ? Math.random : mulberry32(hashSeed(seed));
   for (let i = a.length - 1; i > 0; i--) {
-    s = (s * 9301 + 49297) % 233280;
-    const j = Math.floor((s / 233280) * (i + 1));
+    const j = Math.floor(rand() * (i + 1));
     [a[i], a[j]] = [a[j], a[i]];
   }
   return a;

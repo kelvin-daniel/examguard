@@ -13,7 +13,8 @@ export type ViolationType =
   | "context_menu"
   | "keyboard_shortcut"
   | "network_lost"
-  | "screen_resize";
+  | "screen_resize"
+  | "screen_search";
 
 export type EnforcementSettings = {
   requireFullscreen: boolean;
@@ -26,6 +27,7 @@ export type EnforcementSettings = {
 const HIGH_SEVERITY = new Set<ViolationType>([
   "fullscreen_exit",
   "visibility_hidden",
+  "screen_search",
 ]);
 
 const DEFAULT_SETTINGS: EnforcementSettings = {
@@ -51,6 +53,7 @@ export function useAntiCheat({
   settings = DEFAULT_SETTINGS,
   onPause,
   onTerminate,
+  getContext,
 }: {
   attemptId: string;
   containerRef: React.RefObject<HTMLElement | null>;
@@ -58,6 +61,11 @@ export function useAntiCheat({
   settings?: EnforcementSettings;
   onPause?: (reason: string) => void;
   onTerminate?: () => void;
+  /**
+   * Called at report time to attach where-was-the-student context (current
+   * question id/number) to every violation, so evidence is attributable.
+   */
+  getContext?: () => Record<string, unknown>;
 }) {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [violations, setViolations] = useState<
@@ -69,6 +77,8 @@ export function useAntiCheat({
   const lastReportedAt = useRef<Record<string, number>>({});
   const settingsRef = useRef(settings);
   settingsRef.current = settings;
+  const getContextRef = useRef(getContext);
+  getContextRef.current = getContext;
 
   const captureEvidence = useCallback(async (): Promise<string | undefined> => {
     const node = containerRef.current;
@@ -117,12 +127,14 @@ export function useAntiCheat({
 
       const evidence = withEvidence ? await captureEvidence() : undefined;
       const severity = HIGH_SEVERITY.has(type) ? "high" : "medium";
+      const context = getContextRef.current?.() ?? {};
+      const fullMeta = { ...context, ...meta };
 
       try {
         const res = await fetch(`/api/attempts/${attemptId}/violation`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ type, severity, meta, evidence }),
+          body: JSON.stringify({ type, severity, meta: fullMeta, evidence }),
         });
         if (!res.ok) return;
         const data = (await res.json()) as ReportResponse;
@@ -155,7 +167,45 @@ export function useAntiCheat({
       handlers.push([target, evt, fn]);
     };
 
+    // ---- screen-search heuristic (Google Lens & friends) ----
+    // The Lens flow is: right-click / long-press on the question, then the
+    // browser opens a search side panel — which shrinks the viewport
+    // HORIZONTALLY. A significant width change shortly after a context-menu
+    // or screenshot attempt is a strong signal the student is image-searching
+    // the question.
+    //
+    // This is deliberately narrow, because a false positive pauses a real
+    // student's exam. Excluded: fullscreen transitions, device rotation, and
+    // — critically on the phones/tablets this is built for — the on-screen
+    // keyboard, which fires a resize that changes only the height. Requiring
+    // a horizontal change is what keeps long-press-then-type from flagging.
+    const MIN_WIDTH_DELTA = 50; // px; Lens/side panels take far more than this
+    let lastSuspectAt = 0;
+    let lastFsChangeAt = 0;
+    let lastSize = { w: window.innerWidth, h: window.innerHeight };
+    const markSuspect = () => {
+      lastSuspectAt = Date.now();
+    };
+    const onResize = () => {
+      const now = Date.now();
+      const prev = lastSize;
+      const next = { w: window.innerWidth, h: window.innerHeight };
+      lastSize = next;
+      if (!lastSuspectAt || now - lastSuspectAt >= 10_000) return;
+      if (now - lastFsChangeAt < 1500) return; // entering/leaving fullscreen
+      if (prev.w === next.h && prev.h === next.w) return; // device rotation
+      if (Math.abs(next.w - prev.w) < MIN_WIDTH_DELTA) return; // keyboard/URL bar
+      const gapMs = now - lastSuspectAt;
+      lastSuspectAt = 0; // one report per suspect event
+      void report(
+        "screen_search",
+        { gapMs, widthBefore: prev.w, widthAfter: next.w },
+        true
+      );
+    };
+
     const onFs = () => {
+      lastFsChangeAt = Date.now();
       const fs = Boolean(
         document.fullscreenElement ||
           // @ts-expect-error safari
@@ -180,6 +230,9 @@ export function useAntiCheat({
       }
     };
     const onContext = (e: Event) => {
+      // Always feed the screen-search state machine, even when right-click
+      // isn't blocked — the Lens flow works either way.
+      markSuspect();
       if (!settingsRef.current.blockRightClick) return;
       e.preventDefault();
       void report("context_menu", {}, false);
@@ -201,6 +254,7 @@ export function useAntiCheat({
     };
     const onKey = (event: Event) => {
       const e = event as KeyboardEvent;
+      if (e.key === "PrintScreen") markSuspect();
       if (!settingsRef.current.blockKeyboardShortcuts) return;
       const k = e.key.toLowerCase();
       if (
@@ -236,6 +290,7 @@ export function useAntiCheat({
     add(document, "paste", onPaste);
     add(document, "cut", onCut);
     add(document, "keydown", onKey);
+    add(window, "resize", onResize);
     add(window, "online", onOnline);
     add(window, "offline", onOffline);
 

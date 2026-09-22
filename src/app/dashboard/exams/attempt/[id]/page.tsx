@@ -3,7 +3,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Clock, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Clock, AlertTriangle, Zap } from "lucide-react";
 import { formatDateTime } from "@/lib/utils";
 import { AnswerGrader } from "@/components/answer-grader";
 import { parseCollectFields } from "@/lib/collect-fields";
@@ -27,6 +27,33 @@ export default async function AttemptDetailPage({
   if (!attempt || attempt.exam.ownerId !== user.id) notFound();
 
   const collectFields = parseCollectFields(attempt.exam.collectFields);
+
+  // Violations carry the on-screen question in their meta (questionNumber).
+  const violationContext = (metaJson: string | null) => {
+    if (!metaJson) return null;
+    try {
+      const meta = JSON.parse(metaJson) as Record<string, unknown>;
+      return typeof meta.questionNumber === "number"
+        ? `On question ${meta.questionNumber}`
+        : null;
+    } catch {
+      return null;
+    }
+  };
+
+  // Typing-speed heuristic: a substantial text answer produced faster than a
+  // human can type (sustained >15 chars/sec) almost certainly arrived via
+  // paste or pre-written text.
+  const pasteSuspicion = (a: (typeof attempt.answers)[number]) => {
+    if (!["short", "essay"].includes(a.question.type)) return null;
+    if (a.timeSpentMs <= 0 || a.response.length < 80) return null;
+    const cps = a.response.length / (a.timeSpentMs / 1000);
+    return cps > 15 ? Math.round(cps) : null;
+  };
+  const fmtTime = (ms: number) =>
+    ms >= 60_000
+      ? `${Math.floor(ms / 60_000)}m ${Math.round((ms % 60_000) / 1000)}s`
+      : `${Math.round(ms / 1000)}s`;
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
@@ -143,6 +170,11 @@ export default async function AttemptDetailPage({
                   </div>
                   <div className="text-xs text-[var(--fg-muted)] mt-1">
                     {formatDateTime(v.createdAt)}
+                    {violationContext(v.meta) && (
+                      <span className="ml-1.5 text-[var(--primary)] font-medium">
+                        · {violationContext(v.meta)}
+                      </span>
+                    )}
                   </div>
                   {v.resolution && (
                     <div className="mt-1 text-[10px] uppercase tracking-wider text-[var(--fg-subtle)]">
@@ -166,6 +198,7 @@ export default async function AttemptDetailPage({
               : null;
             const correctIdx = q.correct ? JSON.parse(q.correct) : null;
             const studentIdx = a.response;
+            const suspiciousCps = pasteSuspicion(a);
             return (
               <div
                 key={a.id}
@@ -184,6 +217,22 @@ export default async function AttemptDetailPage({
                     initialIsCorrect={a.isCorrect}
                   />
                 </div>
+                {(a.timeSpentMs > 0 || suspiciousCps) && (
+                  <div className="mb-2 flex items-center gap-2 flex-wrap text-xs">
+                    {a.timeSpentMs > 0 && (
+                      <span className="text-[var(--fg-subtle)]">
+                        Time on question: {fmtTime(a.timeSpentMs)}
+                      </span>
+                    )}
+                    {suspiciousCps && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-[#fef3c7] dark:bg-[#451a03] px-2 py-0.5 font-medium text-[#92400e] dark:text-[#fbbf24]">
+                        <Zap className="h-3 w-3" />
+                        {a.response.length} chars in {fmtTime(a.timeSpentMs)} (~
+                        {suspiciousCps}/sec) — possible paste
+                      </span>
+                    )}
+                  </div>
+                )}
                 <div className="text-sm text-[var(--fg-muted)]">
                   {q.type === "mcq" || q.type === "truefalse" ? (
                     <>

@@ -27,7 +27,10 @@ export async function POST(req: Request) {
         select: { id: true, sectionId: true, type: true },
         orderBy: { order: "asc" },
       },
-      sections: { select: { id: true }, orderBy: { order: "asc" } },
+      sections: {
+        select: { id: true, poolSize: true },
+        orderBy: { order: "asc" },
+      },
     },
   });
   if (!exam) return NextResponse.json({ error: "Exam not found" }, { status: 404 });
@@ -114,10 +117,28 @@ export async function POST(req: Request) {
     return out;
   };
 
+  // Question pools: when a group has a poolSize, each student gets a random
+  // subset of that size. Passages are context, not questions — they're always
+  // served and don't count against the pool.
+  const sampleGroup = (qs: QRow[], poolSize: number | null): QRow[] => {
+    const movable = qs.filter((q) => q.type !== "passage");
+    if (!poolSize || poolSize >= movable.length) return qs;
+    const picked = new Set(
+      shuffle(movable.map((q) => q.id)).slice(0, poolSize)
+    );
+    return qs.filter((q) => q.type === "passage" || picked.has(q.id));
+  };
+
   const groups: QRow[][] = [
-    exam.questions.filter((q) => !q.sectionId),
+    sampleGroup(
+      exam.questions.filter((q) => !q.sectionId),
+      exam.poolSize
+    ),
     ...exam.sections.map((s) =>
-      exam.questions.filter((q) => q.sectionId === s.id)
+      sampleGroup(
+        exam.questions.filter((q) => q.sectionId === s.id),
+        s.poolSize
+      )
     ),
   ];
   const order = groups.flatMap((g) =>

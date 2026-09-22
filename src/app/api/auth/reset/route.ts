@@ -34,18 +34,19 @@ export async function POST(req: Request) {
       { status: 400 }
     );
 
-  await prisma.$transaction([
-    prisma.user.update({
-      where: { id: reset.userId },
-      data: { password: await hashPassword(parsed.data.newPassword) },
-    }),
-    prisma.passwordResetToken.update({
-      where: { id: reset.id },
-      data: { usedAt: new Date() },
-    }),
-    // Invalidate any remaining live sessions for safety
-    prisma.session.deleteMany({ where: { userId: reset.userId } }),
-  ]);
+  // Sequential writes: $transaction arrays can fail to commit on remote
+  // libsql (Turso). Order matters — burn the token first so a partial
+  // failure can never leave a reusable link pointing at a changed password.
+  await prisma.passwordResetToken.update({
+    where: { id: reset.id },
+    data: { usedAt: new Date() },
+  });
+  await prisma.user.update({
+    where: { id: reset.userId },
+    data: { password: await hashPassword(parsed.data.newPassword) },
+  });
+  // Invalidate any remaining live sessions for safety
+  await prisma.session.deleteMany({ where: { userId: reset.userId } });
 
   return NextResponse.json({ ok: true });
 }

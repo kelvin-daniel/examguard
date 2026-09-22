@@ -34,6 +34,7 @@ import {
   GripVertical,
   ImageIcon,
   Plus,
+  Shuffle,
   Sliders,
   SplitSquareVertical,
   Trash2,
@@ -79,6 +80,7 @@ export type EditorSection = {
   order: number;
   title: string;
   description: string | null;
+  poolSize: number | null;
 };
 
 /**
@@ -368,6 +370,7 @@ export function FormsEditor({
         order: (section.order as number) ?? 0,
         title: (section.title as string) ?? "Untitled section",
         description: (section.description as string) ?? null,
+        poolSize: (section.poolSize as number) ?? null,
       },
     });
   }
@@ -540,6 +543,7 @@ export function FormsEditor({
         order: s.order as number,
         title: s.title as string,
         description: (s.description as string) ?? null,
+        poolSize: (s.poolSize as number) ?? null,
       }))
     );
     commit([...itemsRef.current, ...importedItems], { persist: true });
@@ -626,6 +630,14 @@ export function FormsEditor({
                 {item.kind === "section" ? (
                   <SortableSectionCard
                     section={item.section}
+                    questionCount={
+                      items.filter(
+                        (it) =>
+                          it.kind === "question" &&
+                          it.question.sectionId === item.section.id &&
+                          it.question.type !== "passage"
+                      ).length
+                    }
                     onChange={(patch) => patchSection(item.section.id, patch)}
                     onDelete={() => deleteSection(item.section.id)}
                   />
@@ -704,6 +716,7 @@ function SortableQuestionCard(props: {
 
 function SortableSectionCard(props: {
   section: EditorSection;
+  questionCount: number;
   onChange: (patch: Partial<EditorSection>) => void;
   onDelete: () => void;
 }) {
@@ -1533,11 +1546,13 @@ function TypeChanger({
 
 function SectionCard({
   section,
+  questionCount,
   onChange,
   onDelete,
   dragHandleProps,
 }: {
   section: EditorSection;
+  questionCount: number;
   onChange: (patch: Partial<EditorSection>) => void;
   onDelete: () => void;
   dragHandleProps?: React.HTMLAttributes<HTMLDivElement>;
@@ -1581,6 +1596,30 @@ function SectionCard({
           className="text-sm border-0 bg-transparent px-0 mt-1 min-h-0 focus-visible:ring-0 focus-visible:border-0"
           rows={2}
         />
+        {questionCount > 1 && (
+          <div className="mt-2 pt-2 border-t border-[var(--border)] flex items-center gap-2 text-sm text-[var(--fg-muted)]">
+            <Shuffle className="h-3.5 w-3.5 text-[#5b21b6]" />
+            <span>Ask each student</span>
+            <select
+              value={section.poolSize ?? 0}
+              onChange={(e) => {
+                const v = Number(e.target.value);
+                onChange({ poolSize: v === 0 ? null : v });
+              }}
+              className="h-8 px-2 rounded-lg border border-[var(--border-strong)] bg-white/70 dark:bg-white/5 text-sm text-[var(--fg)]"
+            >
+              <option value={0}>all {questionCount}</option>
+              {Array.from({ length: questionCount - 1 }, (_, i) => i + 1).map(
+                (n) => (
+                  <option key={n} value={n}>
+                    {n} random
+                  </option>
+                )
+              )}
+            </select>
+            <span>of these questions</span>
+          </div>
+        )}
       </div>
     </div>
   );

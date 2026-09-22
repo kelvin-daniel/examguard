@@ -55,12 +55,17 @@ export async function PATCH(
     prisma.answer.findMany({ where: { attemptId: answer.attemptId } }),
     prisma.question.findMany({
       where: { examId: answer.attempt.examId },
-      select: { points: true, type: true },
+      select: { id: true, points: true, type: true },
     }),
   ]);
   const score = all.reduce((s, a) => s + (a.pointsEarned ?? 0), 0);
+  // With question pools each attempt is served a subset — maxScore counts
+  // only the questions this student actually received.
+  const served = new Set(
+    JSON.parse(answer.attempt.questionOrder) as string[]
+  );
   const maxScore = questions
-    .filter((q) => q.type !== "passage")
+    .filter((q) => served.has(q.id) && q.type !== "passage")
     .reduce((s, q) => s + q.points, 0);
   await prisma.attempt.update({
     where: { id: answer.attemptId },

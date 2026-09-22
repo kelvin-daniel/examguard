@@ -63,6 +63,7 @@ export async function POST(
           order: startS + i,
           title: s.title,
           description: s.description,
+          poolSize: s.poolSize,
         },
       });
       sectionMap.set(s.id, created.id);
@@ -72,9 +73,12 @@ export async function POST(
 
   // Copy questions, mapping sectionId to the newly created sections (or null
   // if we're flattening or the source section was unmapped).
-  const createdQuestions = await prisma.$transaction(
-    source.questions.map((q, i) =>
-      prisma.question.create({
+  // Sequential creates — $transaction arrays silently fail on remote Turso.
+  const createdQuestions = [];
+  for (let i = 0; i < source.questions.length; i++) {
+    const q = source.questions[i];
+    createdQuestions.push(
+      await prisma.question.create({
         data: {
           examId: id,
           order: startQ + i,
@@ -91,8 +95,8 @@ export async function POST(
           imageUrl: q.imageUrl,
         },
       })
-    )
-  );
+    );
+  }
 
   return NextResponse.json({
     importedQuestions: createdQuestions.length,

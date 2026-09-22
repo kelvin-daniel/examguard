@@ -35,6 +35,7 @@ type ExamShape = {
   passingScore: number;
   passingScoreMode: "percentage" | "points";
   defaultPoints: number;
+  poolSize: number | null;
   startAt: string | null;
   endAt: string | null;
   status: string;
@@ -77,6 +78,11 @@ export function ExamEditor({
 
   const totalQuestions = initialQuestions.length;
   const totalPoints = initialQuestions.reduce((s, q) => s + q.points, 0);
+  // Pool-eligible questions outside any section (sections have their own
+  // per-section pool control on their cards in the Questions tab).
+  const unsectionedCount = initialQuestions.filter(
+    (q) => !q.sectionId && q.type !== "passage"
+  ).length;
 
   async function saveSettings() {
     setSavingSettings(true);
@@ -93,6 +99,7 @@ export function ExamEditor({
         passingScore: e.passingScore,
         passingScoreMode: e.passingScoreMode,
         defaultPoints: e.defaultPoints,
+        poolSize: e.poolSize,
         startAt: e.startAt,
         endAt: e.endAt,
         requireFullscreen: e.requireFullscreen,
@@ -421,6 +428,41 @@ export function ExamEditor({
               checked={e.showResults}
               onChange={(v) => setE((s) => ({ ...s, showResults: v }))}
             />
+
+            {unsectionedCount > 1 && (
+              <div className="pt-2 border-t border-[var(--border)]">
+                <div className="text-sm font-medium text-[var(--fg)]">
+                  Question pool
+                </div>
+                <div className="text-xs text-[var(--fg-muted)] mt-0.5">
+                  Serve each student a random subset — students get different
+                  questions, so answers can&apos;t be shared. Sections have
+                  their own pool control on the section card.
+                </div>
+                <div className="mt-3 flex items-center gap-2 text-sm text-[var(--fg-muted)]">
+                  <span>Ask each student</span>
+                  <select
+                    value={e.poolSize ?? 0}
+                    onChange={(ev) => {
+                      const v = Number(ev.target.value);
+                      setE((s) => ({ ...s, poolSize: v === 0 ? null : v }));
+                    }}
+                    className="h-9 px-2 rounded-lg border border-[var(--border-strong)] bg-white dark:bg-white/5 text-sm text-[var(--fg)]"
+                  >
+                    <option value={0}>all {unsectionedCount}</option>
+                    {Array.from(
+                      { length: unsectionedCount - 1 },
+                      (_, i) => i + 1
+                    ).map((n) => (
+                      <option key={n} value={n}>
+                        {n} random
+                      </option>
+                    ))}
+                  </select>
+                  <span>of the {unsectionedCount} questions outside sections</span>
+                </div>
+              </div>
+            )}
 
             <div className="pt-2 border-t border-[var(--border)]">
               <div className="text-sm font-medium text-[var(--fg)]">

@@ -78,6 +78,7 @@ const CREATE_TABLES = [
     "allowScratchpad" BOOLEAN NOT NULL DEFAULT false,
     "collectFields" TEXT,
     "defaultPoints" REAL NOT NULL DEFAULT 1,
+    "poolSize" INTEGER,
     "ownerId" TEXT NOT NULL,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -88,7 +89,8 @@ const CREATE_TABLES = [
     "examId" TEXT NOT NULL,
     "order" INTEGER NOT NULL,
     "title" TEXT NOT NULL,
-    "description" TEXT
+    "description" TEXT,
+    "poolSize" INTEGER
   )`,
   `CREATE TABLE IF NOT EXISTS "Question" (
     "id" TEXT NOT NULL PRIMARY KEY,
@@ -131,6 +133,7 @@ const CREATE_TABLES = [
     "response" TEXT NOT NULL,
     "isCorrect" BOOLEAN,
     "pointsEarned" REAL,
+    "timeSpentMs" INTEGER NOT NULL DEFAULT 0,
     "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
   )`,
   `CREATE UNIQUE INDEX IF NOT EXISTS "Answer_attemptId_questionId_key" ON "Answer"("attemptId", "questionId")`,
@@ -167,7 +170,10 @@ const EXPECTED_COLUMNS = [
   ["Exam", "allowScratchpad", `"allowScratchpad" BOOLEAN NOT NULL DEFAULT false`],
   ["Exam", "collectFields", `"collectFields" TEXT`],
   ["Exam", "defaultPoints", `"defaultPoints" REAL NOT NULL DEFAULT 1`],
+  ["Exam", "poolSize", `"poolSize" INTEGER`],
   ["Section", "description", `"description" TEXT`],
+  ["Section", "poolSize", `"poolSize" INTEGER`],
+  ["Answer", "timeSpentMs", `"timeSpentMs" INTEGER NOT NULL DEFAULT 0`],
   ["Question", "sectionId", `"sectionId" TEXT`],
   ["Question", "description", `"description" TEXT`],
   ["Question", "required", `"required" BOOLEAN NOT NULL DEFAULT true`],

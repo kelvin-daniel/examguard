@@ -140,9 +140,12 @@ export async function POST(
     );
 
   const startOrder = await prisma.question.count({ where: { examId: id } });
-  const created = await prisma.$transaction(
-    stubs.map((s, i) =>
-      prisma.question.create({
+  // Sequential creates — $transaction arrays silently fail on remote Turso.
+  const created = [];
+  for (let i = 0; i < stubs.length; i++) {
+    const s = stubs[i];
+    created.push(
+      await prisma.question.create({
         data: {
           examId: id,
           order: startOrder + i,
@@ -154,8 +157,8 @@ export async function POST(
           correct: s.correct !== undefined ? JSON.stringify(s.correct) : null,
         },
       })
-    )
-  );
+    );
+  }
 
   return NextResponse.json({ created: created.length, questions: created });
 }

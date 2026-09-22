@@ -19,12 +19,16 @@ export async function POST(
     return NextResponse.json({ ok: true });
   }
 
-  // Grade auto-gradable questions
+  // Grade auto-gradable questions. Only the questions actually SERVED to
+  // this student count — with question pools, each attempt gets a subset,
+  // so maxScore must come from the attempt's own questionOrder.
+  const served = new Set(JSON.parse(attempt.questionOrder) as string[]);
   let score = 0;
   let maxScore = 0;
   const answerUpdates: { id: string; isCorrect: boolean; pointsEarned: number }[] = [];
 
   for (const q of attempt.exam.questions) {
+    if (!served.has(q.id)) continue;
     // Passages are read-only context, never count toward the total
     if (q.type === "passage") continue;
     maxScore += q.points;
@@ -68,23 +72,22 @@ export async function POST(
     });
   }
 
-  await prisma.$transaction([
-    ...answerUpdates.map((u) =>
-      prisma.answer.update({
-        where: { id: u.id },
-        data: { isCorrect: u.isCorrect, pointsEarned: u.pointsEarned },
-      })
-    ),
-    prisma.attempt.update({
-      where: { id },
-      data: {
-        status: "submitted",
-        submittedAt: new Date(),
-        score,
-        maxScore,
-      },
-    }),
-  ]);
+  // Sequential writes — $transaction arrays silently fail on remote Turso.
+  for (const u of answerUpdates) {
+    await prisma.answer.update({
+      where: { id: u.id },
+      data: { isCorrect: u.isCorrect, pointsEarned: u.pointsEarned },
+    });
+  }
+  await prisma.attempt.update({
+    where: { id },
+    data: {
+      status: "submitted",
+      submittedAt: new Date(),
+      score,
+      maxScore,
+    },
+  });
 
   return NextResponse.json({ ok: true });
 }

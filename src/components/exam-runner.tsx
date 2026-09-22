@@ -56,6 +56,7 @@ const VIOLATION_LABELS: Record<string, string> = {
   context_menu: "Right-click attempted",
   keyboard_shortcut: "Blocked shortcut",
   network_lost: "Lost connection",
+  screen_search: "Possible screen search",
 };
 
 export function ExamRunner({
@@ -121,6 +122,14 @@ export function ExamRunner({
     },
     onTerminate: () => {
       router.refresh();
+    },
+    // Attach the on-screen question to every violation so the teacher's
+    // evidence view can say "on question 4", not just "at 10:32".
+    getContext: () => {
+      const q = questions[idx];
+      return q
+        ? { questionId: q.id, questionNumber: idx + 1, questionType: q.type }
+        : {};
     },
   });
 
@@ -196,6 +205,35 @@ export function ExamRunner({
   }
 
   const current = questions[idx];
+
+  // ---- per-question time tracking ----
+  // Accumulates how long each question was actually on screen (paused and
+  // pre-start time excluded). Sent with every answer save so the teacher can
+  // spot implausibly fast responses (e.g. a long essay "typed" in seconds).
+  const timeSpentRef = useRef<Record<string, number>>({});
+  const visibleQidRef = useRef<string | null>(null);
+  const visibleSinceRef = useRef(0);
+  const active = started && !paused && !needsResume;
+  useEffect(() => {
+    const now = Date.now();
+    if (visibleQidRef.current) {
+      timeSpentRef.current[visibleQidRef.current] =
+        (timeSpentRef.current[visibleQidRef.current] ?? 0) +
+        (now - visibleSinceRef.current);
+      visibleQidRef.current = null;
+    }
+    if (active && current) {
+      visibleQidRef.current = current.id;
+      visibleSinceRef.current = now;
+    }
+  }, [active, current]);
+
+  function timeOnQuestion(qid: string): number {
+    let t = timeSpentRef.current[qid] ?? 0;
+    if (visibleQidRef.current === qid) t += Date.now() - visibleSinceRef.current;
+    return Math.round(t);
+  }
+
   // Passages are reading material, not questions — exclude them from
   // progress counts so "3 / 10 answered" reflects what's actually gradable.
   const answerable = useMemo(
@@ -269,7 +307,11 @@ export function ExamRunner({
       await fetch(`/api/attempts/${attemptId}/answer`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ questionId: qid, response: persisted }),
+        body: JSON.stringify({
+          questionId: qid,
+          response: persisted,
+          timeSpentMs: timeOnQuestion(qid),
+        }),
       });
     } catch {
       // queued for retry implicitly via React state

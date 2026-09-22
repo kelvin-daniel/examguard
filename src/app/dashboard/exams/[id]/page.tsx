@@ -43,6 +43,7 @@ export default async function ExamEditPage({
     order: s.order,
     title: s.title,
     description: s.description,
+    poolSize: s.poolSize,
   }));
 
   return (
@@ -59,6 +60,7 @@ export default async function ExamEditPage({
         passingScore: exam.passingScore,
         passingScoreMode: exam.passingScoreMode as "percentage" | "points",
         defaultPoints: exam.defaultPoints,
+        poolSize: exam.poolSize,
         startAt: exam.startAt?.toISOString() ?? null,
         endAt: exam.endAt?.toISOString() ?? null,
         status: exam.status,

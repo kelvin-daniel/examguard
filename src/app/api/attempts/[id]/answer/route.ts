@@ -6,6 +6,9 @@ import { attemptDeadlineMs } from "@/lib/exam-time";
 const schema = z.object({
   questionId: z.string(),
   response: z.string().max(20000),
+  // Visible time on the question at save time; clamped to something sane so
+  // a crafted request can't store garbage.
+  timeSpentMs: z.number().int().min(0).max(86_400_000).optional(),
 });
 
 export async function POST(
@@ -40,11 +43,17 @@ export async function POST(
         questionId: parsed.data.questionId,
       },
     },
-    update: { response: parsed.data.response },
+    update: {
+      response: parsed.data.response,
+      ...(parsed.data.timeSpentMs !== undefined
+        ? { timeSpentMs: parsed.data.timeSpentMs }
+        : {}),
+    },
     create: {
       attemptId: id,
       questionId: parsed.data.questionId,
       response: parsed.data.response,
+      timeSpentMs: parsed.data.timeSpentMs ?? 0,
     },
   });
 

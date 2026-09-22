@@ -55,7 +55,24 @@ const VIOLATION_LABELS: Record<string, string> = {
   context_menu: "Right-click attempted",
   keyboard_shortcut: "Blocked shortcut",
   network_lost: "Lost connection",
+  screen_search: "Possible screen search (Lens)",
 };
+
+/**
+ * Violations carry the on-screen question in their meta, so the teacher can
+ * see exactly which question the student was looking at when it fired.
+ */
+function questionContext(metaJson: string | null): string | null {
+  if (!metaJson) return null;
+  try {
+    const meta = JSON.parse(metaJson) as Record<string, unknown>;
+    return typeof meta.questionNumber === "number"
+      ? `Question ${meta.questionNumber}`
+      : null;
+  } catch {
+    return null;
+  }
+}
 
 export function MonitorClient({ examId }: { examId: string }) {
   const [attempts, setAttempts] = useState<AttemptRow[] | null>(null);
@@ -350,6 +367,14 @@ function ReviewModal({
               <span className="text-[#dc2626]">{label}</span>
               <span className="mx-2">·</span>
               <span>{relTime(violation.at)}</span>
+              {questionContext(violation.meta) && (
+                <>
+                  <span className="mx-2">·</span>
+                  <span className="font-medium text-[var(--primary)]">
+                    {questionContext(violation.meta)}
+                  </span>
+                </>
+              )}
             </div>
           </div>
           <button
