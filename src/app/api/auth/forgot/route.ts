@@ -3,6 +3,7 @@ import { z } from "zod";
 import { nanoid } from "nanoid";
 import { prisma } from "@/lib/prisma";
 import { sendPasswordResetLink } from "@/lib/email";
+import { clientIp, rateLimit } from "@/lib/rate-limit";
 
 const schema = z.object({
   email: z
@@ -18,6 +19,16 @@ export async function POST(req: Request) {
   const parsed = schema.safeParse(body);
   // Always succeed to avoid leaking which emails exist (anti-enumeration)
   if (!parsed.success) {
+    return NextResponse.json({ ok: true });
+  }
+  // Each request sends a real email, so an unthrottled endpoint both burns
+  // the mail quota and lets someone flood a victim's inbox. Answer with the
+  // same ok:true as every other path so this doesn't become an oracle.
+  const limited = rateLimit(`forgot:${await clientIp()}`, {
+    limit: 5,
+    windowMs: 15 * 60_000,
+  });
+  if (!limited.ok) {
     return NextResponse.json({ ok: true });
   }
   const user = await prisma.user.findUnique({

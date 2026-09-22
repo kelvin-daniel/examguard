@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { hashPassword, isAdminEmail } from "@/lib/auth";
 import { sendPendingApprovalToAdmins } from "@/lib/email";
+import { clientIp, rateLimit, tooManyRequests } from "@/lib/rate-limit";
 
 const schema = z.object({
   name: z.string().min(1).max(120),
@@ -19,6 +20,18 @@ export async function POST(req: Request) {
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid input" }, { status: 400 });
   }
+  // Registration notifies every admin by email, so cap sign-ups per host.
+  const limited = rateLimit(`register:${await clientIp()}`, {
+    limit: 5,
+    windowMs: 60 * 60_000,
+  });
+  if (!limited.ok) {
+    return tooManyRequests(
+      limited.retryAfter,
+      "Too many sign-ups from this device. Please try again later."
+    );
+  }
+
   const { name, email, password } = parsed.data;
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) {

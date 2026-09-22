@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { shuffle } from "@/lib/utils";
 import { parseCollectFields } from "@/lib/collect-fields";
+import { clientIp, rateLimit, tooManyRequests } from "@/lib/rate-limit";
 
 const schema = z.object({
   code: z.string().length(6),
@@ -18,6 +19,22 @@ export async function POST(req: Request) {
   const parsed = schema.safeParse(body);
   if (!parsed.success)
     return NextResponse.json({ error: "Invalid input" }, { status: 400 });
+
+  // Every join writes an Attempt row, so a loop could flood the database.
+  // The ceiling is deliberately high: an entire school sits behind one NAT
+  // address, and wrongly blocking a class from starting their exam is far
+  // worse than letting through some junk rows. This only catches scripted
+  // abuse, not a busy exam morning.
+  const limited = rateLimit(`join:${await clientIp()}`, {
+    limit: 300,
+    windowMs: 5 * 60_000,
+  });
+  if (!limited.ok) {
+    return tooManyRequests(
+      limited.retryAfter,
+      "Too many join attempts from this network. Please wait a moment."
+    );
+  }
 
   const code = parsed.data.code.toUpperCase();
   const exam = await prisma.exam.findUnique({
