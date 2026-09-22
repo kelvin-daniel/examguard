@@ -28,6 +28,7 @@ export default async function ExamPreviewPage({
     title: s.title,
     description: s.description,
     order: s.order,
+    poolSize: s.poolSize,
   }));
 
   const questions = exam.questions.map((q) => ({
@@ -74,7 +75,8 @@ export default async function ExamPreviewPage({
             {exam.durationMinutes} min
           </div>
         </div>
-        <ExamPreviewClient sections={sections} questions={questions} />
+        <ExamPreviewClient
+        poolSize={exam.poolSize} sections={sections} questions={questions} />
       </div>
     </div>
   );

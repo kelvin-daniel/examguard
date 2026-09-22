@@ -8,6 +8,7 @@ type PreviewSection = {
   title: string;
   description: string | null;
   order: number;
+  poolSize: number | null;
 };
 
 type PreviewQuestion = {
@@ -26,9 +27,12 @@ type PreviewQuestion = {
 export function ExamPreviewClient({
   sections,
   questions,
+  poolSize,
 }: {
   sections: PreviewSection[];
   questions: PreviewQuestion[];
+  /** Pool for the questions that sit outside any section. */
+  poolSize: number | null;
 }) {
   const [answers, setAnswers] = useState<Record<string, string>>({});
 
@@ -56,11 +60,26 @@ export function ExamPreviewClient({
     );
   }
 
+  // A pooled group shows every question here, but each student is served a
+  // random subset — say so, or the preview quietly misrepresents the paper.
+  const poolNote = (group: (typeof grouped)[number]) => {
+    const size = group.section ? group.section.poolSize : poolSize;
+    const askable = group.questions.filter((q) => q.type !== "passage").length;
+    if (!size || size >= askable) return null;
+    return (
+      <div className="rounded-xl bg-[#ede9fe] dark:bg-[#2e1065]/50 border border-[#a78bfa] px-3 py-2 text-xs font-medium text-[#5b21b6] dark:text-[#c4b5fd]">
+        Each student is asked {size} random question{size === 1 ? "" : "s"} of
+        the {askable} below — you are seeing the whole pool.
+      </div>
+    );
+  };
+
   let qIndex = 0;
   return (
     <div className="space-y-6">
       {grouped.map((g, gi) => (
         <div key={g.section?.id ?? `none-${gi}`} className="space-y-4">
+          {poolNote(g)}
           {g.section && (
             <div className="rounded-2xl border-l-4 border-l-[#a78bfa] border-y border-r border-[var(--border)] bg-gradient-to-br from-white/80 to-[#ede9fe]/40 dark:from-white/5 dark:to-[#2e1065]/30 backdrop-blur-sm p-5">
               <h2 className="text-lg font-semibold text-[var(--fg)]">

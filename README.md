@@ -7,12 +7,25 @@ automatic screenshot evidence on every flagged event.
 
 ## Highlights
 
-- **Forms-grade editor** — drag-to-reorder cards, 10 question types, inline
+- **Forms-grade editor** — drag-to-reorder cards, 11 question types, inline
   type changer, sections, bulk paste, preview
 - **Behavioral anti-cheat** — fullscreen exit, tab-switch, copy/paste, right
-  click, devtools shortcuts → screenshot + report
+  click, devtools shortcuts → screenshot + report. Every flag records the
+  question the student was on
+- **Screen-search detection** — catches the Google Lens pattern (long-press
+  or right-click, then a search panel opens and the viewport narrows)
+  without misfiring on the mobile keyboard or rotation
+- **Question pools** — "ask 5 random of these 15", per section or exam-wide,
+  so no two students sit the same paper
+- **Answer timing** — per-question time is recorded; long written answers
+  produced faster than anyone can type are flagged as possible paste
 - **Live monitor** — teacher sees pending reviews in real time, can pause /
-  allow / terminate; "End exam" preserves screenshot as proof
+  allow / terminate, and grant individual students extra time; "End exam"
+  preserves screenshot as proof
+- **Question performance** — per-question percent correct, average time and
+  times served, so the questions a class missed are obvious
+- **Accommodations** — per-student extra time, granted mid-exam, reaching the
+  student without a reload
 - **Admin approval** — anyone can register, admin approves before access
 - **Free-tier ready** — Vercel + Turso + Resend, all on free plans
 
@@ -163,6 +176,10 @@ Then `vercel --prod` to deploy. Vercel rebuilds on every `git push` from then on
 - [x] CSV export for results
 - [x] Manual grading UI for short-answer / essay questions
 - [x] Email password-reset flow
+- [x] Question pools (random subset per student)
+- [x] Per-student extra time / accommodations
+- [x] Per-question item analysis on the results page
+- [ ] Teacher ↔ student chat during an exam
 - [ ] Conditional section branching ("if Q3 = Yes go to section 3")
 - [ ] Multiple-choice grids (matrix of radios / checkboxes)
 - [ ] Multi-tenant per-school subdomains
