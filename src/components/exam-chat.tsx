@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { MessageCircle, Megaphone, Send, X } from "lucide-react";
+import { useKeyboardInset } from "@/components/exam-tools";
 
 export type ChatMessage = {
   id: string;
@@ -39,6 +40,26 @@ export function ExamChat({
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  // Space available above the dock once the keyboard is accounted for, so the
+  // panel shrinks instead of being pushed off-screen.
+  const keyboardInset = useKeyboardInset();
+  const [viewportHeight, setViewportHeight] = useState(0);
+  useEffect(() => {
+    const update = () =>
+      setViewportHeight(window.visualViewport?.height ?? window.innerHeight);
+    update();
+    window.visualViewport?.addEventListener("resize", update);
+    window.addEventListener("resize", update);
+    return () => {
+      window.visualViewport?.removeEventListener("resize", update);
+      window.removeEventListener("resize", update);
+    };
+  }, []);
+  // Leave room for the dock button row and a comfortable margin.
+  const panelMaxHeight = Math.max(
+    220,
+    (viewportHeight || 800) - (keyboardInset > 0 ? 24 : 160) - 80
+  );
 
   const load = useCallback(async () => {
     try {
@@ -106,9 +127,14 @@ export function ExamChat({
       {open && (
         <div
           data-no-capture="true"
-          className="w-[min(92vw,360px)] glass rounded-2xl overflow-hidden flex flex-col max-h-[60vh] shadow-[0_24px_48px_-12px_rgba(15,23,42,0.25)]"
+          // Solid surface, not glass: this sits over exam text, and a
+          // translucent panel made messages hard to read.
+          className="w-[min(92vw,360px)] rounded-2xl overflow-hidden flex flex-col border border-[var(--border)] bg-[var(--surface)] shadow-[0_24px_48px_-12px_rgba(15,23,42,0.35)]"
+          // Cap against the *visible* viewport so the thread never grows
+          // behind the on-screen keyboard.
+          style={{ maxHeight: `min(60vh, ${panelMaxHeight}px)` }}
         >
-          <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border)]">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border)] bg-[var(--bg-soft)]">
             <div className="font-semibold text-[var(--fg)] text-sm">
               Message your teacher
             </div>
@@ -134,7 +160,7 @@ export function ExamChat({
           </div>
 
           {canSend && (
-            <div className="p-3 border-t border-[var(--border)]">
+            <div className="p-3 border-t border-[var(--border)] bg-[var(--bg-soft)]">
               {error && (
                 <div className="mb-2 text-xs text-[#dc2626]">{error}</div>
               )}
@@ -151,7 +177,7 @@ export function ExamChat({
                   rows={1}
                   maxLength={2000}
                   placeholder="Type a message…"
-                  className="flex-1 resize-none rounded-xl border border-[var(--border-strong)] bg-white/70 dark:bg-white/5 px-3 py-2 text-sm text-[var(--fg)] focus:outline-none focus:border-[var(--primary)] max-h-24"
+                  className="flex-1 resize-none rounded-xl border border-[var(--border-strong)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--fg)] focus:outline-none focus:border-[var(--primary)] max-h-24"
                 />
                 <button
                   onClick={() => void send()}
@@ -215,7 +241,7 @@ function Bubble({ m }: { m: ChatMessage }) {
       <div
         className={`max-w-[85%] rounded-2xl px-3 py-2 ${
           m.fromTeacher
-            ? "bg-white/70 dark:bg-white/10 text-[var(--fg)]"
+            ? "bg-[var(--bg-muted)] text-[var(--fg)]"
             : "bg-gradient-to-br from-[#3b82f6] to-[#2563eb] text-white"
         }`}
       >

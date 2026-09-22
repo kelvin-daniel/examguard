@@ -4,6 +4,34 @@ import { useEffect, useState } from "react";
 import { Calculator as CalcIcon, StickyNote, X, Delete } from "lucide-react";
 
 /**
+ * Pixels of the layout viewport currently hidden by the on-screen keyboard.
+ * Returns 0 on desktop and wherever visualViewport isn't supported, so
+ * callers can add it unconditionally.
+ */
+export function useKeyboardInset(): number {
+  const [inset, setInset] = useState(0);
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const update = () => {
+      // Anything below the visual viewport is covered — the keyboard, and on
+      // iOS the offset that appears when the page scrolls under it.
+      const hidden = window.innerHeight - vv.height - vv.offsetTop;
+      // Ignore small deltas so a URL bar hiding doesn't shift the dock.
+      setInset(hidden > 80 ? Math.round(hidden) : 0);
+    };
+    update();
+    vv.addEventListener("resize", update);
+    vv.addEventListener("scroll", update);
+    return () => {
+      vv.removeEventListener("resize", update);
+      vv.removeEventListener("scroll", update);
+    };
+  }, []);
+  return inset;
+}
+
+/**
  * Floating exam tools — a basic calculator and a scratchpad — shown when the
  * teacher enables them for the exam. Both are self-contained: the calculator
  * never uses eval (safe shunting-yard evaluator) and the scratchpad persists
@@ -22,10 +50,18 @@ export function ExamTools({
   children?: React.ReactNode;
 }) {
   const [open, setOpen] = useState<"calc" | "pad" | null>(null);
+  // On phones and tablets the on-screen keyboard covers the bottom of the
+  // screen, which would hide the chat composer and the scratchpad. The visual
+  // viewport shrinks when it opens, so lift the whole dock by that much.
+  const keyboardInset = useKeyboardInset();
+
   if (!calculator && !scratchpad && !children) return null;
 
   return (
-    <div className="fixed bottom-24 left-4 z-30 flex flex-col items-start gap-2">
+    <div
+      className="fixed left-4 z-30 flex flex-col items-start gap-2 transition-[bottom] duration-150"
+      style={{ bottom: `calc(6rem + ${keyboardInset}px)` }}
+    >
       {open === "calc" && <CalculatorPanel onClose={() => setOpen(null)} />}
       {open === "pad" && (
         <ScratchpadPanel attemptId={attemptId} onClose={() => setOpen(null)} />

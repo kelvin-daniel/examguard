@@ -452,7 +452,12 @@ export function ExamRunner({
       />
 
       {paused && (
-        <PausedOverlay reason={pausedReason} examTitle={examTitle} />
+        <PausedOverlay
+          reason={pausedReason}
+          examTitle={examTitle}
+          attemptId={attemptId}
+          canChat={settings.allowChat}
+        />
       )}
       {needsResume && <ResumeOverlay onResume={resume} />}
 
@@ -760,7 +765,7 @@ function StartScreen({
 function ResumeOverlay({ onResume }: { onResume: () => void }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-[#020617]/80 backdrop-blur-sm">
-      <div className="max-w-md w-full text-center glass rounded-3xl p-8">
+      <div className="max-w-md w-full text-center rounded-3xl p-8 border border-[var(--border)] bg-[var(--surface)] shadow-[0_24px_48px_-12px_rgba(15,23,42,0.4)]">
         <div className="h-16 w-16 mx-auto rounded-2xl bg-gradient-to-br from-[#34d399] to-[#10b981] flex items-center justify-center mb-6 shadow-[0_8px_24px_-4px_rgba(16,185,129,0.40)]">
           <ShieldCheck className="h-8 w-8 text-white" />
         </div>
@@ -783,14 +788,46 @@ function ResumeOverlay({ onResume }: { onResume: () => void }) {
 function PausedOverlay({
   reason,
   examTitle,
+  attemptId,
+  canChat,
 }: {
   reason: string | null;
   examTitle: string;
+  attemptId: string;
+  canChat: boolean;
 }) {
   const label = reason ? VIOLATION_LABELS[reason] ?? reason : "Policy violation";
+  // A paused student used to have nothing to do but wait, with no way to say
+  // "my screen glitched" if the teacher wasn't watching the monitor. They
+  // can't leave the lockdown to ask, so the composer comes to them.
+  const [note, setNote] = useState("");
+  const [sent, setSent] = useState(false);
+  const [sending, setSending] = useState(false);
+
+  async function sendNote() {
+    const body = note.trim();
+    if (!body || sending) return;
+    setSending(true);
+    try {
+      const res = await fetch(`/api/attempts/${attemptId}/messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ role: "student", body }),
+      });
+      if (res.ok) {
+        setNote("");
+        setSent(true);
+      }
+    } catch {
+      // leave the text in place so they can retry
+    } finally {
+      setSending(false);
+    }
+  }
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-[#020617]/80 backdrop-blur-sm">
-      <div className="max-w-md w-full text-center glass rounded-3xl p-8">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-[#020617]/80 backdrop-blur-sm overflow-y-auto">
+      <div className="max-w-md w-full text-center rounded-3xl p-8 border border-[var(--border)] bg-[var(--surface)] shadow-[0_24px_48px_-12px_rgba(15,23,42,0.4)]">
         <div className="h-16 w-16 mx-auto rounded-2xl bg-gradient-to-br from-[#fbbf24] to-[#bfdbfe] flex items-center justify-center mb-6 shadow-[0_8px_24px_-4px_rgba(251,191,36,0.30)]">
           <PauseCircle className="h-8 w-8 text-[#92400e]" />
         </div>
@@ -802,12 +839,54 @@ function PausedOverlay({
           was paused after a flagged event:{" "}
           <strong className="text-[#dc2626]">{label}</strong>.
         </p>
-        <div className="mt-6 text-sm text-[var(--fg-muted)]">
-          Your teacher has been notified and is reviewing the evidence.
+        <div className="mt-4 text-sm text-[var(--fg-muted)]">
+          Your teacher has been notified and is reviewing. Your remaining time
+          is frozen — you won&apos;t lose any of it.
         </div>
+
+        {canChat && (
+          <div className="mt-6 text-left">
+            {sent ? (
+              <div className="rounded-xl bg-[#d1fae5] dark:bg-[#064e3b] border border-[#10b981] px-3 py-2 text-sm text-[#047857] dark:text-[#6ee7b7]">
+                Message sent. Your teacher will see it on their screen.
+              </div>
+            ) : (
+              <>
+                <label className="text-xs font-medium text-[var(--fg-muted)]">
+                  Need to explain what happened?
+                </label>
+                {/* Stacked, not side-by-side: at phone width a textarea and
+                    a button in one row leaves neither usable. */}
+                <textarea
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      void sendNote();
+                    }
+                  }}
+                  rows={3}
+                  maxLength={2000}
+                  placeholder="e.g. My screen froze for a moment."
+                  className="mt-1.5 w-full resize-none rounded-xl border border-[var(--border-strong)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--fg)] focus:outline-none focus:border-[var(--primary)]"
+                />
+                <Button
+                  variant="primary"
+                  onClick={() => void sendNote()}
+                  disabled={!note.trim() || sending}
+                  className="mt-2 w-full"
+                >
+                  {sending ? "Sending…" : "Send to teacher"}
+                </Button>
+              </>
+            )}
+          </div>
+        )}
+
         <div className="mt-6 inline-flex items-center gap-2 text-xs text-[var(--fg-subtle)]">
           <span className="h-2 w-2 rounded-full bg-[#2563eb] live-dot" />
-          Waiting for review…
+          Waiting for your teacher&apos;s decision…
         </div>
       </div>
     </div>

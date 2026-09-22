@@ -39,10 +39,15 @@ export function ChatThreadModal({
     }
   }, [attemptId]);
 
+  // Reset is keyed on the attempt alone, so a re-render can never clear a
+  // half-typed reply.
   useEffect(() => {
-    if (!attemptId) return;
     setMessages([]);
     setDraft("");
+  }, [attemptId]);
+
+  useEffect(() => {
+    if (!attemptId) return;
     void load();
     const t = setInterval(load, 4000);
     return () => clearInterval(t);
@@ -104,10 +109,10 @@ export function ChatThreadModal({
       onClick={onClose}
     >
       <div
-        className="max-w-lg w-full glass rounded-3xl overflow-hidden flex flex-col max-h-[80vh]"
+        className="max-w-lg w-full rounded-3xl overflow-hidden flex flex-col max-h-[80vh] border border-[var(--border)] bg-[var(--surface)] shadow-[0_24px_48px_-12px_rgba(15,23,42,0.35)]"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border)]">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border)] bg-[var(--bg-soft)]">
           <div>
             <div className="font-semibold text-[var(--fg)]">{studentName}</div>
             <div className="text-xs text-[var(--fg-muted)]">
@@ -134,7 +139,7 @@ export function ChatThreadModal({
           )}
         </div>
 
-        <div className="p-4 border-t border-[var(--border)] flex items-end gap-2">
+        <div className="p-4 border-t border-[var(--border)] bg-[var(--bg-soft)] flex items-end gap-2">
           <textarea
             autoFocus
             value={draft}
@@ -148,7 +153,7 @@ export function ChatThreadModal({
             rows={1}
             maxLength={2000}
             placeholder={`Message ${studentName.split(" ")[0]}…`}
-            className="flex-1 resize-none rounded-xl border border-[var(--border-strong)] bg-white/70 dark:bg-white/5 px-3 py-2 text-sm text-[var(--fg)] focus:outline-none focus:border-[var(--primary)] max-h-28"
+            className="flex-1 resize-none rounded-xl border border-[var(--border-strong)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--fg)] focus:outline-none focus:border-[var(--primary)] max-h-28"
           />
           <Button
             variant="primary"
@@ -187,7 +192,7 @@ function TeacherBubble({ m }: { m: ChatMessage }) {
         className={`max-w-[85%] rounded-2xl px-3 py-2 ${
           m.fromTeacher
             ? "bg-gradient-to-br from-[#3b82f6] to-[#2563eb] text-white"
-            : "bg-white/70 dark:bg-white/10 text-[var(--fg)]"
+            : "bg-[var(--bg-muted)] text-[var(--fg)]"
         }`}
       >
         <div className="text-sm whitespace-pre-wrap break-words">{m.body}</div>
@@ -220,9 +225,16 @@ export function BroadcastModal({
   const [sending, setSending] = useState(false);
   const { toast } = useToast();
 
+  // Clear the box only when the modal actually opens. This effect must NOT
+  // depend on onClose: the monitor re-renders every 2.5s from its poll, which
+  // hands down a new function identity each time — re-running this wiped
+  // whatever the teacher had typed so far.
+  useEffect(() => {
+    if (open) setDraft("");
+  }, [open]);
+
   useEffect(() => {
     if (!open) return;
-    setDraft("");
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") onClose();
     }
@@ -275,7 +287,7 @@ export function BroadcastModal({
       onClick={onClose}
     >
       <div
-        className="max-w-lg w-full glass rounded-3xl p-6"
+        className="max-w-lg w-full rounded-3xl p-6 border border-[var(--border)] bg-[var(--surface)] shadow-[0_24px_48px_-12px_rgba(15,23,42,0.35)]"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center gap-3 mb-4">
@@ -298,7 +310,7 @@ export function BroadcastModal({
           rows={4}
           maxLength={2000}
           placeholder="e.g. Question 5 has a typo — ignore the last line."
-          className="w-full resize-none rounded-xl border border-[var(--border-strong)] bg-white/70 dark:bg-white/5 px-3 py-2 text-sm text-[var(--fg)] focus:outline-none focus:border-[var(--primary)]"
+          className="w-full resize-none rounded-xl border border-[var(--border-strong)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--fg)] focus:outline-none focus:border-[var(--primary)]"
         />
         <div className="mt-4 flex justify-end gap-2">
           <Button variant="ghost" onClick={onClose}>

@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
+import { useConfirm } from "@/components/ui/confirm";
 import { ChatThreadModal, BroadcastModal } from "@/components/monitor-chat";
 import {
   AlertTriangle,
@@ -88,6 +89,10 @@ export function MonitorClient({ examId }: { examId: string }) {
     null
   );
   const [broadcasting, setBroadcasting] = useState(false);
+  // Stable identities: these are passed into the chat modals, whose effects
+  // key on them. A fresh function every poll would re-run those effects.
+  const closeChat = useCallback(() => setChatWith(null), []);
+  const closeBroadcast = useCallback(() => setBroadcasting(false), []);
   const [resolving, setResolving] = useState(false);
   const seenIds = useRef<Set<string>>(new Set());
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -202,12 +207,12 @@ export function MonitorClient({ examId }: { examId: string }) {
       <ChatThreadModal
         attemptId={chatWith?.id ?? null}
         studentName={chatWith?.name ?? ""}
-        onClose={() => setChatWith(null)}
+        onClose={closeChat}
       />
       <BroadcastModal
         examId={examId}
         open={broadcasting}
-        onClose={() => setBroadcasting(false)}
+        onClose={closeBroadcast}
       />
 
       <ReviewModal
@@ -275,6 +280,91 @@ function EmptyRow({ label }: { label: string }) {
   return (
     <div className="rounded-2xl border border-dashed border-[var(--border-strong)] p-8 text-center text-sm text-[var(--fg-muted)]">
       {label}
+    </div>
+  );
+}
+
+/**
+ * Always-available decision on a paused student.
+ *
+ * The review modal can only free a student while a pending violation exists
+ * to review. This works on any paused attempt, so a student can never be
+ * left frozen with nobody able to act.
+ */
+function PausedControls({ attemptId }: { attemptId: string }) {
+  const [busy, setBusy] = useState(false);
+  const { toast } = useToast();
+  const confirm = useConfirm();
+
+  async function act(action: "resume" | "terminate") {
+    if (action === "terminate") {
+      const ok = await confirm({
+        title: "End this student's exam?",
+        description:
+          "Their answers so far are kept and graded, but they can't continue. Evidence is preserved.",
+        confirmLabel: "End exam",
+        destructive: true,
+      });
+      if (!ok) return;
+    }
+    setBusy(true);
+    try {
+      const res = await fetch(`/api/attempts/${attemptId}/resume`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast({
+          kind: "error",
+          title: "Couldn't update the student",
+          description: data.error ?? "Please try again.",
+        });
+        return;
+      }
+      toast({
+        kind: "success",
+        title:
+          action === "resume"
+            ? "Student resumed — paused time credited back"
+            : "Exam ended for this student",
+      });
+    } catch {
+      toast({
+        kind: "error",
+        title: "Couldn't update the student",
+        description: "Check your connection and try again.",
+      });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="px-4 pb-2 pt-2 border-t border-[var(--border)]">
+      <div className="text-xs text-[#92400e] dark:text-[#fbbf24] font-medium mb-2 flex items-center gap-1">
+        <PauseCircle className="h-3.5 w-3.5" />
+        Paused — waiting on you
+      </div>
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={() => act("resume")}
+          disabled={busy}
+          className="flex-1 h-9 rounded-xl text-sm font-medium bg-gradient-to-br from-[#34d399] to-[#10b981] text-white disabled:opacity-50"
+        >
+          Let them continue
+        </button>
+        <button
+          type="button"
+          onClick={() => act("terminate")}
+          disabled={busy}
+          className="h-9 px-3 rounded-xl text-sm font-medium border border-[#fca5a5] text-[#dc2626] hover:bg-[#fee2e2] dark:hover:bg-[#7f1d1d] disabled:opacity-50"
+        >
+          End
+        </button>
+      </div>
     </div>
   );
 }
@@ -462,6 +552,7 @@ function AttemptCard({ a, onChat }: { a: AttemptRow; onChat: () => void }) {
         <Eye className="h-3.5 w-3.5" /> View details
       </div>
     </Link>
+    {a.status === "paused" && <PausedControls attemptId={a.id} />}
     {(a.status === "in_progress" || a.status === "paused") && (
       <>
         <div className="px-4 pb-2">
